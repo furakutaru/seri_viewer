@@ -256,6 +256,35 @@ export const appRouter = router({
       }),
   }),
 
+  // データ取り込み管理関連
+  dataImport: router({
+    createSale: protectedProcedure
+      .input(
+        z.object({
+          name: z.string(),
+          catalogUrl: z.string().url(),
+          jokushaUrl: z.string().url().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        return {
+          success: true,
+          message: `セリ "${input.name}" を作成しました`,
+        };
+      }),
+
+    getImportStatus: publicProcedure
+      .input(z.object({ saleId: z.number() }))
+      .query(async ({ input }) => {
+        return {
+          saleId: input.saleId,
+          catalogStatus: "pending",
+          jokushaStatus: "pending",
+          horsesCount: 0,
+        };
+      }),
+  }),
+
   // 比較機能関連
   comparison: router({
     // 複数の馬の詳細情報を取得（比較用）
