@@ -6,6 +6,7 @@ import {
   horses,
   userChecks,
   userCheckItems,
+  userCheckResults,
   popularityStats,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -305,6 +306,97 @@ export async function updatePopularityStats(horseId: number) {
       ...stats,
     });
   }
+}
+
+/**
+ * チェック結果関連のクエリ
+ */
+export async function getUserCheckResults(userCheckId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(userCheckResults)
+    .where(eq(userCheckResults.userCheckId, userCheckId));
+}
+
+export async function upsertUserCheckResult(
+  userCheckId: number,
+  checkItemId: number,
+  isChecked: boolean,
+  scoreApplied: number
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  const existing = await db
+    .select()
+    .from(userCheckResults)
+    .where(
+      and(
+        eq(userCheckResults.userCheckId, userCheckId),
+        eq(userCheckResults.checkItemId, checkItemId)
+      )
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .update(userCheckResults)
+      .set({
+        isChecked,
+        scoreApplied,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userCheckResults.userCheckId, userCheckId),
+          eq(userCheckResults.checkItemId, checkItemId)
+        )
+      );
+  } else {
+    await db.insert(userCheckResults).values({
+      userCheckId,
+      checkItemId,
+      isChecked,
+      scoreApplied,
+    });
+  }
+}
+
+/**
+ * チェックリスト項目の削除
+ */
+export async function deleteUserCheckItem(itemId: number) {
+  const db = await getDb();
+  if (!db) return;
+
+  await db.delete(userCheckItems).where(eq(userCheckItems.id, itemId));
+}
+
+/**
+ * チェックリスト項目の更新
+ */
+export async function updateUserCheckItem(
+  itemId: number,
+  data: {
+    itemName?: string;
+    score?: number;
+    criteria?: any;
+  }
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  const updateData: any = {
+    updatedAt: new Date(),
+  };
+  if (data.itemName !== undefined) updateData.itemName = data.itemName;
+  if (data.score !== undefined) updateData.score = data.score;
+  if (data.criteria !== undefined) updateData.criteria = data.criteria;
+
+  await db.update(userCheckItems).set(updateData).where(eq(userCheckItems.id, itemId));
 }
 
 // TODO: add feature queries here as your schema grows.

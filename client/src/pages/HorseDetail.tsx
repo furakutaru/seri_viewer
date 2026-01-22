@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Link } from "wouter";
+import ChecklistManager from "@/components/ChecklistManager";
 
 interface HorseDetailProps {
   params: {
@@ -18,6 +19,7 @@ export default function HorseDetail({ params }: HorseDetailProps) {
   const [memo, setMemo] = useState("");
   const [isEliminated, setIsEliminated] = useState(false);
   const [showCheckItems, setShowCheckItems] = useState(false);
+  const [activeTab, setActiveTab] = useState<"checklist" | "memo" | "pdf">("checklist");
 
   // 馬の詳細情報を取得
   const { data: horse, isLoading } = trpc.horses.getById.useQuery({ id: horseId });
@@ -242,22 +244,30 @@ export default function HorseDetail({ params }: HorseDetailProps) {
           </div>
         </div>
 
-        {/* 右パネル：血統PDF・メモ */}
+        {/* 右パネル：チェックリスト・血統PDF・メモ */}
         <div className="w-96 border-l bg-muted/30 flex flex-col">
           {/* タブ */}
           <div className="flex border-b">
             <button
-              onClick={() => setShowCheckItems(false)}
+              onClick={() => setActiveTab("checklist")}
               className={`flex-1 py-3 px-4 text-sm font-medium ${
-                !showCheckItems ? "border-b-2 border-primary" : "text-muted-foreground"
+                activeTab === "checklist" ? "border-b-2 border-primary" : "text-muted-foreground"
+              }`}
+            >
+              チェック
+            </button>
+            <button
+              onClick={() => setActiveTab("pdf")}
+              className={`flex-1 py-3 px-4 text-sm font-medium ${
+                activeTab === "pdf" ? "border-b-2 border-primary" : "text-muted-foreground"
               }`}
             >
               血統PDF
             </button>
             <button
-              onClick={() => setShowCheckItems(true)}
+              onClick={() => setActiveTab("memo")}
               className={`flex-1 py-3 px-4 text-sm font-medium ${
-                showCheckItems ? "border-b-2 border-primary" : "text-muted-foreground"
+                activeTab === "memo" ? "border-b-2 border-primary" : "text-muted-foreground"
               }`}
             >
               メモ
@@ -266,8 +276,11 @@ export default function HorseDetail({ params }: HorseDetailProps) {
 
           {/* コンテンツ */}
           <div className="flex-1 overflow-auto p-4">
-            {!showCheckItems ? (
-              // 血統PDF
+            {activeTab === "checklist" && (
+              <ChecklistManager saleId={horse.saleId} horseId={horseId} userCheckId={userCheck?.id} />
+            )}
+
+            {activeTab === "pdf" && (
               <div>
                 {horse.pedigreePdfUrl ? (
                   <iframe
@@ -281,8 +294,9 @@ export default function HorseDetail({ params }: HorseDetailProps) {
                   </div>
                 )}
               </div>
-            ) : (
-              // メモ
+            )}
+
+            {activeTab === "memo" && (
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">メモ</label>

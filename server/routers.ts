@@ -13,6 +13,10 @@ import {
   createUserCheckItem,
   getPopularityStats,
   updatePopularityStats,
+  getUserCheckResults,
+  upsertUserCheckResult,
+  deleteUserCheckItem,
+  updateUserCheckItem,
 } from "./db";
 
 export const appRouter = router({
@@ -156,6 +160,64 @@ export const appRouter = router({
           score: input.score,
           criteria: input.criteria,
         });
+
+        return { success: true };
+      }),
+
+    // チェック項目を更新
+    update: protectedProcedure
+      .input(
+        z.object({
+          itemId: z.number(),
+          itemName: z.string().optional(),
+          score: z.number().optional(),
+          criteria: z.any().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        await updateUserCheckItem(input.itemId, {
+          itemName: input.itemName,
+          score: input.score,
+          criteria: input.criteria,
+        });
+        return { success: true };
+      }),
+
+    // チェック項目を削除
+    delete: protectedProcedure
+      .input(z.object({ itemId: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteUserCheckItem(input.itemId);
+        return { success: true };
+      }),
+  }),
+
+  // チェック結果関連
+  checkResults: router({
+    // ユーザーのチェック結果一覧を取得
+    list: protectedProcedure
+      .input(z.object({ userCheckId: z.number() }))
+      .query(async ({ input }) => {
+        return await getUserCheckResults(input.userCheckId);
+      }),
+
+    // チェック結果を更新
+    update: protectedProcedure
+      .input(
+        z.object({
+          userCheckId: z.number(),
+          checkItemId: z.number(),
+          isChecked: z.boolean(),
+          scoreApplied: z.number(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        await upsertUserCheckResult(
+          input.userCheckId,
+          input.checkItemId,
+          input.isChecked,
+          input.scoreApplied
+        );
 
         return { success: true };
       }),
