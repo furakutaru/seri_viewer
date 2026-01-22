@@ -18,6 +18,7 @@ import {
   deleteUserCheckItem,
   updateUserCheckItem,
 } from "./db";
+import { importCatalogAndMeasurements } from "./import-data";
 
 export const appRouter = router({
   system: systemRouter,
@@ -373,6 +374,43 @@ export const appRouter = router({
           totalVotes: 0,
           popularityScore: 0,
         };
+      }),
+  }),
+
+  // データ取り込み関連
+  import: router({
+    // Webカタログ + PDFデータを取り込む
+    importCatalogAndMeasurements: protectedProcedure
+      .input(
+        z.object({
+          saleId: z.number(),
+          catalogUrl: z.string(),
+          pdfUrls: z.array(z.string()),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        // 管理者のみ
+        if (ctx.user?.role !== 'admin') {
+          throw new Error('Only admins can import data');
+        }
+
+        try {
+          const result = await importCatalogAndMeasurements(
+            input.saleId,
+            input.catalogUrl,
+            input.pdfUrls
+          );
+          
+          return {
+            success: result.success,
+            message: 'Data import completed',
+            catalogCount: result.catalogCount,
+            measurementCount: result.measurementCount,
+            insertedCount: result.insertedCount,
+          };
+        } catch (error) {
+          throw new Error(`Import failed: ${error}`);
+        }
       }),
   }),
 });
