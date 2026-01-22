@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import ChecklistManager from "@/components/ChecklistManager";
 
 interface HorseDetailProps {
@@ -14,6 +14,7 @@ interface HorseDetailProps {
 
 export default function HorseDetail({ params }: HorseDetailProps) {
   const horseId = parseInt(params.id);
+  const [, setLocation] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
   const [evaluation, setEvaluation] = useState<"◎" | "○" | "△" | null>(null);
   const [memo, setMemo] = useState("");
@@ -23,6 +24,18 @@ export default function HorseDetail({ params }: HorseDetailProps) {
 
   // 馬の詳細情報を取得
   const { data: horse, isLoading } = trpc.horses.getById.useQuery({ id: horseId });
+
+  // 前の馬を取得
+  const { data: previousHorse } = trpc.navigation.getPrevious.useQuery(
+    { saleId: horse?.saleId || 1, currentHorseId: horseId },
+    { enabled: !!horse?.saleId }
+  );
+
+  // 次の馬を取得
+  const { data: nextHorse } = trpc.navigation.getNext.useQuery(
+    { saleId: horse?.saleId || 1, currentHorseId: horseId },
+    { enabled: !!horse?.saleId }
+  );
 
   // ユーザーの評価を取得
   const { data: userCheck } = trpc.userChecks.getByHorse.useQuery(
@@ -97,8 +110,28 @@ export default function HorseDetail({ params }: HorseDetailProps) {
               ← 一覧に戻る
             </Button>
           </Link>
+          {previousHorse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation(`/horses/${previousHorse.id}`)}
+              title="前の馬へ"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+          )}
           <h1 className="text-2xl font-bold">{horse.horseName}</h1>
           <span className="text-sm text-muted-foreground">上場番号: {horse.lotNumber}</span>
+          {nextHorse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation(`/horses/${nextHorse.id}`)}
+              title="次の馬へ"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          )}
         </div>
         <div className="flex gap-2">
           <Button

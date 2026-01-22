@@ -223,6 +223,39 @@ export const appRouter = router({
       }),
   }),
 
+  // ナビゲーション関連
+  navigation: router({
+    // 前の馬を取得
+    getPrevious: publicProcedure
+      .input(
+        z.object({
+          saleId: z.number(),
+          currentHorseId: z.number(),
+        })
+      )
+      .query(async ({ input }) => {
+        const horses = await getHorsesBySale(input.saleId);
+        const currentIndex = horses.findIndex((h: any) => h.id === input.currentHorseId);
+        if (currentIndex <= 0) return null;
+        return horses[currentIndex - 1];
+      }),
+
+    // 次の馬を取得
+    getNext: publicProcedure
+      .input(
+        z.object({
+          saleId: z.number(),
+          currentHorseId: z.number(),
+        })
+      )
+      .query(async ({ input }) => {
+        const horses = await getHorsesBySale(input.saleId);
+        const currentIndex = horses.findIndex((h: any) => h.id === input.currentHorseId);
+        if (currentIndex < 0 || currentIndex >= horses.length - 1) return null;
+        return horses[currentIndex + 1];
+      }),
+  }),
+
   // 比較機能関連
   comparison: router({
     // 複数の馬の詳細情報を取得（比較用）
