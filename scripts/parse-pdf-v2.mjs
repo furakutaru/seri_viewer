@@ -56,7 +56,7 @@ export async function parsePdfMeasurements(pdfUrl, saleDate) {
  * (blank)
  * （cm） （cm） （cm）
  * (blank)
- * 1, 2, 3, ..., 65 (上場番号のリスト)
+ * 1, 2, 3, ..., 65 (上場番号のリスト、任意の開始番号)
  * (blank)
  * 欠場, 150, 154, 158, 151, 152, ... (測尺データ)
  * 
@@ -85,23 +85,30 @@ function parseMeasurementText(text) {
   }
   
   // 上場番号のセクションを探す
-  // "番号" の行から、"1" が始まるまでスキップ
+  // "番号" の行の次から、最初の数値を探す
   let lotNumbersStart = headerIdx + 1;
-  while (lotNumbersStart < lines.length && lines[lotNumbersStart].trim() !== '1') {
+  while (lotNumbersStart < lines.length && !/^\d+$/.test(lines[lotNumbersStart].trim())) {
     lotNumbersStart++;
   }
   
-  // 上場番号を収集（1から始まる連番のみ）
+  if (lotNumbersStart >= lines.length) {
+    console.warn('Could not find lot numbers in PDF');
+    return measurements;
+  }
+  
+  // 上場番号を収集（任意の開始番号から始まる連番）
   const lotNumbers = [];
   let i = lotNumbersStart;
-  let expectedNum = 1;
+  let firstNum = parseInt(lines[lotNumbersStart].trim());
+  let expectedNum = firstNum;
+  
   while (i < lines.length) {
     const line = lines[i].trim();
     
     if (/^\d+$/.test(line)) {
       const num = parseInt(line);
       
-      // 連番をチェック（1, 2, 3, ..., N の形式）
+      // 連番をチェック
       if (num === expectedNum) {
         lotNumbers.push(num);
         expectedNum++;
@@ -117,7 +124,7 @@ function parseMeasurementText(text) {
     }
   }
   
-  console.log(`Found ${lotNumbers.length} lot numbers`);
+  console.log(`Found ${lotNumbers.length} lot numbers (starting from ${firstNum})`);
   
   // 測尺データのセクションを探す
   let measurementStart = i;
