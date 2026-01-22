@@ -71,7 +71,12 @@ export default function HorseList() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">セリ市ビューワー</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">セリ市ビューワー</h1>
+          <Link href="/comparison">
+            <Button>比較画面へ</Button>
+          </Link>
+        </div>
 
         {/* フィルタリングUI */}
         <Card className="p-6 mb-6">

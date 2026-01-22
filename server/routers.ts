@@ -222,6 +222,59 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // 比較機能関連
+  comparison: router({
+    // 複数の馬の詳細情報を取得（比較用）
+    getMultiple: protectedProcedure
+      .input(z.object({ horseIds: z.array(z.number()) }))
+      .query(async ({ input, ctx }) => {
+        const horses = await Promise.all(
+          input.horseIds.map((id) => getHorseById(id))
+        );
+
+        // 各馬のユーザー評価を取得
+        const evaluations = await Promise.all(
+          input.horseIds.map((id) => getUserCheckByUserAndHorse(ctx.user.id, id))
+        );
+
+        return horses.map((horse, index) => ({
+          ...horse,
+          userEvaluation: evaluations[index],
+        }));
+      }),
+
+    // 比較画面での評価を一括更新
+    updateEvaluations: protectedProcedure
+      .input(
+        z.object({
+          updates: z.array(
+            z.object({
+              horseId: z.number(),
+              evaluation: z.enum(["◎", "○", "△"]).nullable().optional(),
+              isEliminated: z.boolean().optional(),
+            })
+          ),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        await Promise.all(
+          input.updates.map((update) =>
+            upsertUserCheck(ctx.user.id, update.horseId, {
+              evaluation: update.evaluation ?? null,
+              isEliminated: update.isEliminated,
+            })
+          )
+        );
+
+        // 統計を更新
+        await Promise.all(
+          input.updates.map((update) => updatePopularityStats(update.horseId))
+        );
+
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
