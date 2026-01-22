@@ -213,6 +213,15 @@ export default function HorseList() {
             該当する馬がありません
           </div>
         )}
+
+        {/* 統計ダッシュボードへのリンク */}
+        <div className="mt-8 flex justify-center">
+          <Link href="/statistics">
+            <Button variant="default" size="lg">
+              統計ダッシュボードを詳細
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

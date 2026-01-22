@@ -337,6 +337,44 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // 統計・可視化関連
+  statistics: router({
+    // セリの人気度統計を取得
+    getPopularityBySale: publicProcedure
+      .input(z.object({ saleId: z.number() }))
+      .query(async ({ input }) => {
+        return {
+          saleId: input.saleId,
+          totalEvaluations: 0,
+          statistics: [] as Array<{
+            horseId: number;
+            horseName: string;
+            excellentCount: number;
+            goodCount: number;
+            fairCount: number;
+            eliminatedCount: number;
+            totalVotes: number;
+            popularityScore: number;
+          }>,
+        };
+      }),
+
+    // 個別馬の評価統計を取得
+    getHorseStats: publicProcedure
+      .input(z.object({ horseId: z.number() }))
+      .query(async ({ input }) => {
+        return {
+          horseId: input.horseId,
+          excellentCount: 0,
+          goodCount: 0,
+          fairCount: 0,
+          eliminatedCount: 0,
+          totalVotes: 0,
+          popularityScore: 0,
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
