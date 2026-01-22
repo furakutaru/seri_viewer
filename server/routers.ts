@@ -1,10 +1,21 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import {
+  getHorsesBySale,
+  getHorseById,
+  insertHorse,
+  getUserCheckByUserAndHorse,
+  upsertUserCheck,
+  getUserCheckItems,
+  createUserCheckItem,
+  getPopularityStats,
+  updatePopularityStats,
+} from "./db";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -17,12 +28,138 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // 馬データ関連
+  horses: router({
+    // セリの馬一覧を取得（フィルタリング対応）
+    listBySale: publicProcedure
+      .input(
+        z.object({
+          saleId: z.number(),
+          sireName: z.string().optional(),
+          breeder: z.string().optional(),
+          heightMin: z.number().optional(),
+          heightMax: z.number().optional(),
+          girthMin: z.number().optional(),
+          girthMax: z.number().optional(),
+          cannonMin: z.number().optional(),
+          cannonMax: z.number().optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        const horses = await getHorsesBySale(input.saleId, {
+          sireName: input.sireName,
+          breeder: input.breeder,
+          heightMin: input.heightMin,
+          heightMax: input.heightMax,
+          girthMin: input.girthMin,
+          girthMax: input.girthMax,
+          cannonMin: input.cannonMin,
+          cannonMax: input.cannonMax,
+        });
+
+        // 各馬の人気度統計を取得
+        const horsesWithStats = await Promise.all(
+          horses.map(async (horse: any) => {
+            const stats = await getPopularityStats(horse.id);
+            return {
+              ...horse,
+              stats: stats || {
+                countExcellent: 0,
+                countGood: 0,
+                countFair: 0,
+              },
+            };
+          })
+        );
+
+        return horsesWithStats;
+      }),
+
+    // 馬の詳細情報を取得
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const horse = await getHorseById(input.id);
+        if (!horse) return null;
+
+        const stats = await getPopularityStats(horse.id);
+        return {
+          ...horse,
+          stats: stats || {
+            countExcellent: 0,
+            countGood: 0,
+            countFair: 0,
+          },
+        };
+      }),
+  }),
+
+  // ユーザー評価関連
+  userChecks: router({
+    // ユーザーの馬に対する評価を取得
+    getByHorse: protectedProcedure
+      .input(z.object({ horseId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        return await getUserCheckByUserAndHorse(ctx.user.id, input.horseId);
+      }),
+
+    // ユーザーの評価を更新（◎○△、メモ、消フラグ）
+    update: protectedProcedure
+      .input(
+        z.object({
+          horseId: z.number(),
+          evaluation: z.enum(["◎", "○", "△"]).nullable().optional(),
+          memo: z.string().optional(),
+          isEliminated: z.boolean().optional(),
+          totalScore: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        await upsertUserCheck(ctx.user.id, input.horseId, {
+          evaluation: input.evaluation ?? null,
+          memo: input.memo,
+          isEliminated: input.isEliminated,
+          totalScore: input.totalScore,
+        });
+
+        // 統計を更新
+        await updatePopularityStats(input.horseId);
+
+        return { success: true };
+      }),
+  }),
+
+  // チェックリスト関連
+  checkItems: router({
+    // ユーザーのチェック項目一覧を取得
+    list: protectedProcedure
+      .input(z.object({ saleId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        return await getUserCheckItems(ctx.user.id, input.saleId);
+      }),
+
+    // チェック項目を作成
+    create: protectedProcedure
+      .input(
+        z.object({
+          saleId: z.number(),
+          itemName: z.string(),
+          itemType: z.enum(["boolean", "numeric"]),
+          score: z.number(),
+          criteria: z.any().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        await createUserCheckItem(ctx.user.id, input.saleId, {
+          itemName: input.itemName,
+          itemType: input.itemType,
+          score: input.score,
+          criteria: input.criteria,
+        });
+
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
