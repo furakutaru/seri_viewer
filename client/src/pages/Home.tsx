@@ -20,6 +20,13 @@ export default function Home() {
                 馬一覧を詳細でいてみる
               </Button>
             </Link>
+            {user?.role === 'admin' && (
+              <Link href="/admin/import">
+                <Button size="lg" className="mr-4" variant="secondary">
+                  データ取り込み
+                </Button>
+              </Link>
+            )}
             <Button variant="outline" onClick={logout}>
               ログアウト
             </Button>

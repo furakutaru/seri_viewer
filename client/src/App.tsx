@@ -9,6 +9,7 @@ import HorseList from "./pages/HorseList";
 import HorseDetail from "./pages/HorseDetail";
 import ComparisonPage from "./pages/ComparisonPage";
 import StatisticsDashboard from "./pages/StatisticsDashboard";
+import { AdminImport } from "./pages/AdminImport";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/horses/:id"} component={HorseDetail} />
       <Route path={"/comparison"} component={ComparisonPage} />
       <Route path={"/statistics"} component={StatisticsDashboard} />
+      <Route path={"/admin/import"} component={AdminImport} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
