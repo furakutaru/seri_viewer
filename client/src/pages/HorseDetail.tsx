@@ -13,7 +13,7 @@ interface HorseDetailProps {
 }
 
 export default function HorseDetail({ params }: HorseDetailProps) {
-  const horseId = parseInt(params.id);
+  const lotNumber = parseInt(params.id);
   const [, setLocation] = useLocation();
   const [showSidebar, setShowSidebar] = useState(true);
   const [evaluation, setEvaluation] = useState<"◎" | "○" | "△" | null>(null);
@@ -22,25 +22,25 @@ export default function HorseDetail({ params }: HorseDetailProps) {
   const [showCheckItems, setShowCheckItems] = useState(false);
   const [activeTab, setActiveTab] = useState<"checklist" | "memo" | "pdf">("checklist");
 
-  // 馬の詳細情報を取得
-  const { data: horse, isLoading } = trpc.horses.getById.useQuery({ id: horseId });
+  // 馬の詳細情報を取得（上場番号で検索）
+  const { data: horse, isLoading } = trpc.horses.getByLotNumber.useQuery({ lotNumber });
 
   // 前の馬を取得
   const { data: previousHorse } = trpc.navigation.getPrevious.useQuery(
-    { saleId: horse?.saleId || 1, currentHorseId: horseId },
+    { saleId: horse?.saleId || 1, currentHorseId: horse?.id || 0 },
     { enabled: !!horse?.saleId }
   );
 
   // 次の馬を取得
   const { data: nextHorse } = trpc.navigation.getNext.useQuery(
-    { saleId: horse?.saleId || 1, currentHorseId: horseId },
+    { saleId: horse?.saleId || 1, currentHorseId: horse?.id || 0 },
     { enabled: !!horse?.saleId }
   );
 
   // ユーザーの評価を取得
   const { data: userCheck } = trpc.userChecks.getByHorse.useQuery(
-    { horseId },
-    { enabled: !!horseId }
+    { horseId: horse?.id || 0 },
+    { enabled: !!horse?.id }
   );
 
   // 評価を更新
@@ -49,7 +49,7 @@ export default function HorseDetail({ params }: HorseDetailProps) {
   const handleEvaluationChange = (value: "◎" | "○" | "△") => {
     setEvaluation(value);
     updateCheckMutation.mutate({
-      horseId,
+      horseId: horse?.id || 0,
       evaluation: value,
       memo,
       isEliminated,
@@ -63,7 +63,7 @@ export default function HorseDetail({ params }: HorseDetailProps) {
   const handleEliminatedChange = (value: boolean) => {
     setIsEliminated(value);
     updateCheckMutation.mutate({
-      horseId,
+      horseId: horse?.id || 0,
       evaluation,
       memo,
       isEliminated: value,
@@ -72,7 +72,7 @@ export default function HorseDetail({ params }: HorseDetailProps) {
 
   const handleSaveMemo = () => {
     updateCheckMutation.mutate({
-      horseId,
+      horseId: horse?.id || 0,
       evaluation,
       memo,
       isEliminated,
@@ -171,7 +171,7 @@ export default function HorseDetail({ params }: HorseDetailProps) {
               <div className="mb-6">
                 <img
                   src={horse.photoUrl}
-                  alt={horse.horseName}
+                  alt={horse.horseName || 'Horse'}
                   className="w-full rounded-lg object-cover max-h-96"
                 />
               </div>
@@ -310,7 +310,7 @@ export default function HorseDetail({ params }: HorseDetailProps) {
           {/* コンテンツ */}
           <div className="flex-1 overflow-auto p-4">
             {activeTab === "checklist" && (
-              <ChecklistManager saleId={horse.saleId} horseId={horseId} userCheckId={userCheck?.id} />
+              <ChecklistManager saleId={horse.saleId} horseId={horse?.id || 0} userCheckId={userCheck?.id} />
             )}
 
             {activeTab === "pdf" && (

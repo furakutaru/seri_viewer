@@ -1,0 +1,1 @@
+ALTER TABLE `horses` MODIFY COLUMN `horseName` varchar(256);

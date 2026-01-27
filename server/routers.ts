@@ -3,6 +3,9 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import { horses } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
+import { getDb } from "./db";
 import {
   getHorsesBySale,
   getHorseById,
@@ -19,8 +22,17 @@ import {
   updateUserCheckItem,
 } from "./db";
 import { importCatalogAndMeasurements } from "./import-data";
+import { clearCache, getCacheInfo } from "./cache";
 
 export const appRouter = router({
+  cache: router({
+    getCacheInfo: protectedProcedure.query(async () => {
+      return await getCacheInfo();
+    }),
+    clearCache: protectedProcedure.mutation(async () => {
+      return await clearCache();
+    }),
+  }),
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -87,6 +99,27 @@ export const appRouter = router({
         const horse = await getHorseById(input.id);
         if (!horse) return null;
 
+        const stats = await getPopularityStats(horse.id);
+        return {
+          ...horse,
+          stats: stats || {
+            countExcellent: 0,
+            countGood: 0,
+            countFair: 0,
+          },
+        };
+      }),
+
+    getByLotNumber: publicProcedure
+      .input(z.object({ lotNumber: z.number() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return null;
+
+        const result = await db.select().from(horses).where(eq(horses.lotNumber, input.lotNumber)).limit(1);
+        if (result.length === 0) return null;
+
+        const horse = result[0];
         const stats = await getPopularityStats(horse.id);
         return {
           ...horse,

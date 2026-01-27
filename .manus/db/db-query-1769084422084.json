@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `horses` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `saleId` int NOT NULL,\n  `lotNumber` int NOT NULL,\n  `horseName` varchar(256) NOT NULL,\n  `sex` enum('牡', '牝', 'セン'),\n  `color` varchar(64),\n  `birthDate` timestamp,\n  `sireName` varchar(256),\n  `damName` varchar(256),\n  `consignor` varchar(256),\n  `breeder` varchar(256),\n  `height` decimal(5, 2),\n  `girth` decimal(5, 2),\n  `cannon` decimal(5, 2),\n  `priceEstimate` int,\n  `photoUrl` varchar(512),\n  `videoUrl` varchar(512),\n  `pedigreePdfUrl` varchar(512),\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `horses_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2NrewRPWF9fps2G.root --database 9uTi5p7hfRwyJVLtkUdEjX --execute CREATE TABLE IF NOT EXISTS `horses` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `saleId` int NOT NULL,\n  `lotNumber` int NOT NULL,\n  `horseName` varchar(256) NOT NULL,\n  `sex` enum('牡', '牝', 'セン'),\n  `color` varchar(64),\n  `birthDate` timestamp,\n  `sireName` varchar(256),\n  `damName` varchar(256),\n  `consignor` varchar(256),\n  `breeder` varchar(256),\n  `height` decimal(5, 2),\n  `girth` decimal(5, 2),\n  `cannon` decimal(5, 2),\n  `priceEstimate` int,\n  `photoUrl` varchar(512),\n  `videoUrl` varchar(512),\n  `pedigreePdfUrl` varchar(512),\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `horses_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1649
+}

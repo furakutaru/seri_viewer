@@ -169,9 +169,8 @@ export default function HorseList() {
             <thead>
               <tr className="bg-muted">
                 <th className="border p-3 text-left">上場番号</th>
-                <th className="border p-3 text-left">馬名</th>
                 <th className="border p-3 text-left">性別</th>
-                <th className="border p-3 text-left">父馬名</th>
+                <th className="border p-3 text-left">父母馬名</th>
                 <th className="border p-3 text-left">体高</th>
                 <th className="border p-3 text-left">胸囲</th>
                 <th className="border p-3 text-left">管囲</th>
@@ -183,9 +182,13 @@ export default function HorseList() {
               {sortedHorses.map((horse: any) => (
                 <tr key={horse.id} className="hover:bg-muted/50">
                   <td className="border p-3">{horse.lotNumber}</td>
-                  <td className="border p-3 font-semibold">{horse.horseName}</td>
                   <td className="border p-3">{horse.sex}</td>
-                  <td className="border p-3">{horse.sireName}</td>
+                  <td className="border p-3">
+                    <div className="text-sm">
+                      <div>{horse.sireName}</div>
+                      <div className="text-muted-foreground">{horse.damName}</div>
+                    </div>
+                  </td>
                   <td className="border p-3">{horse.height} cm</td>
                   <td className="border p-3">{horse.girth} cm</td>
                   <td className="border p-3">{horse.cannon} cm</td>
@@ -196,7 +199,7 @@ export default function HorseList() {
                     </span>
                   </td>
                   <td className="border p-3">
-                    <Link href={`/horse/${horse.id}`}>
+                    <Link href={`/horses/${horse.lotNumber}`}>
                       <Button size="sm">
                         詳細
                       </Button>

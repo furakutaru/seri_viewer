@@ -188,7 +188,7 @@ export default function ComparisonPage() {
                   {horse.photoUrl && (
                     <img
                       src={horse.photoUrl}
-                      alt={horse.horseName}
+                      alt={horse.horseName || 'Horse'}
                       className="w-full h-48 object-cover"
                     />
                   )}

@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO horses (saleId, lotNumber, horseName, sex, color, sireName, damName, consignor, breeder) VALUES (1, 999, NULL, '牡', '鹿', 'テスト', 'テスト', 'テスト', 'テスト');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2NrewRPWF9fps2G.root --database 9uTi5p7hfRwyJVLtkUdEjX --execute INSERT INTO horses (saleId, lotNumber, horseName, sex, color, sireName, damName, consignor, breeder) VALUES (1, 999, NULL, '牡', '鹿', 'テスト', 'テスト', 'テスト', 'テスト');",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1048 (23000) at line 1: Column 'horseName' cannot be null"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "query": "SELECT lotNumber, height, chest, cannon FROM horses WHERE lotNumber IN (1, 2);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2NrewRPWF9fps2G.root --database 9uTi5p7hfRwyJVLtkUdEjX --execute SELECT lotNumber, height, chest, cannon FROM horses WHERE lotNumber IN (1, 2);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'chest' in 'field list'"
+  ]
+}

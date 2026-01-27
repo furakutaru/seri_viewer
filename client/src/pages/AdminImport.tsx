@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { CacheManager } from '@/components/CacheManager';
 
 export function AdminImport() {
   const [saleId, setSaleId] = useState('');
@@ -70,13 +71,14 @@ export function AdminImport() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">データ取り込み</h1>
-          <p className="text-muted-foreground">Webカタログと PDF即尺データを取り込みます</p>
-        </div>
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">データ取り込み</h1>
+              <p className="text-muted-foreground">Webカタログと PDF即尺データを取り込みます</p>
+            </div>
 
-        <Card className="mb-6">
+            <Card className="mb-6">
           <CardHeader>
             <CardTitle>取り込み設定</CardTitle>
             <CardDescription>
@@ -166,11 +168,11 @@ export function AdminImport() {
               </Button>
             </form>
           </CardContent>
-        </Card>
+            </Card>
 
-        {/* 結果表示 */}
-        {result && (
-          <Card className="border-green-200 bg-green-50">
+            {/* 結果表示 */}
+            {result && (
+              <Card className="border-green-200 bg-green-50">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
@@ -204,9 +206,13 @@ export function AdminImport() {
               >
                 一覧に戻る
               </Button>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+            )}
+        </div>
+        <div>
+          <CacheManager />
+        </div>
       </div>
     </div>
   );

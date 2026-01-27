@@ -256,13 +256,19 @@ export async function getPopularityStats(horseId: number) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db
-    .select()
-    .from(popularityStats)
-    .where(eq(popularityStats.horseId, horseId))
-    .limit(1);
+  try {
+    const result = await db
+      .select()
+      .from(popularityStats)
+      .where(eq(popularityStats.horseId, horseId))
+      .limit(1);
 
-  return result.length > 0 ? result[0] : undefined;
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    // popularityStats テーブルが存在しない場合はエラーを無視
+    console.warn('getPopularityStats error:', error);
+    return undefined;
+  }
 }
 
 export async function updatePopularityStats(horseId: number) {

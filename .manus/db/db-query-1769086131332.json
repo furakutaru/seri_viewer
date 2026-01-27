@@ -1,0 +1,56 @@
+{
+  "query": "SELECT id, saleId, lotNumber, horseName, sex, sireName FROM horses LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2NrewRPWF9fps2G.root --database 9uTi5p7hfRwyJVLtkUdEjX --execute SELECT id, saleId, lotNumber, horseName, sex, sireName FROM horses LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "saleId": "1",
+      "lotNumber": "1",
+      "horseName": "Horse 1",
+      "sex": "NULL",
+      "sireName": "�T�C�����x���[�m"
+    },
+    {
+      "id": "2",
+      "saleId": "1",
+      "lotNumber": "2",
+      "horseName": "Horse 2",
+      "sex": "NULL",
+      "sireName": "�T�C�����g�\\�j�b�N"
+    },
+    {
+      "id": "3",
+      "saleId": "1",
+      "lotNumber": "3",
+      "horseName": "Horse 3",
+      "sex": "NULL",
+      "sireName": "�T�E���h�E�F�[�u"
+    },
+    {
+      "id": "4",
+      "saleId": "1",
+      "lotNumber": "4",
+      "horseName": "Horse 4",
+      "sex": "NULL",
+      "sireName": "�T���}���N�C�[��"
+    },
+    {
+      "id": "5",
+      "saleId": "1",
+      "lotNumber": "5",
+      "horseName": "Horse 5",
+      "sex": "NULL",
+      "sireName": "�T���L�[�E�G�X�g"
+    }
+  ],
+  "messages": [
+    "    �T�C�����x���[�m",
+    "    �T�C�����g�\\�j�b�N",
+    "    �T�E���h�E�F�[�u",
+    "    �T���}���N�C�[��",
+    "    �T���L�[�E�G�X�g"
+  ],
+  "stdout": "id\tsaleId\tlotNumber\thorseName\tsex\tsireName\n1\t1\t1\tHorse 1\tNULL\t�T�C�����x���[�m\n    �T�C�����x���[�m\n2\t1\t2\tHorse 2\tNULL\t�T�C�����g�\\�j�b�N\n    �T�C�����g�\\�j�b�N\n3\t1\t3\tHorse 3\tNULL\t�T�E���h�E�F�[�u\n    �T�E���h�E�F�[�u\n4\t1\t4\tHorse 4\tNULL\t�T���}���N�C�[��\n    �T���}���N�C�[��\n5\t1\t5\tHorse 5\tNULL\t�T���L�[�E�G�X�g\n    �T���L�[�E�G�X�g\n",
+  "stderr": "",
+  "execution_time_ms": 1503
+}
