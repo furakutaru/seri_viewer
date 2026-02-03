@@ -1,27 +1,5 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "5",
-      "when": 1769048077841,
-      "tag": "0000_busy_pepper_potts",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1769048112178,
-      "tag": "0001_productive_famine",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1769182337638,
-      "tag": "0002_messy_shiva",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }

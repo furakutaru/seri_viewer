@@ -1,44 +1,30 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { getLoginUrl } from "@/const";
-import { Link } from "wouter";
+import { Streamdown } from 'streamdown';
 
+/**
+ * All content in this page are only for example, replace with your own feature implementation
+ * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
+ */
 export default function Home() {
-  let { user, isAuthenticated, logout } = useAuth();
+  // The userAuth hooks provides authentication state
+  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
+  let { user, loading, error, isAuthenticated, logout } = useAuth();
+
+  // If theme is switchable in App.tsx, we can implement theme toggling like this:
+  // const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="p-6">
-        <h1 className="text-4xl font-bold mb-6">セリ市ビューワー</h1>
-        <p className="mb-6 text-lg">競走馬のセリ市を効率的に関査できるツールです。</p>
-
-        {isAuthenticated ? (
-          <div>
-            <p className="mb-4">こんにちは、{user?.name}さん</p>
-            <Link href="/horses">
-              <Button size="lg" className="mr-4">
-                馬一覧を詳細でいてみる
-              </Button>
-            </Link>
-            {user?.role === 'admin' && (
-              <Link href="/admin/import">
-                <Button size="lg" className="mr-4" variant="secondary">
-                  データ取り込み
-                </Button>
-              </Link>
-            )}
-            <Button variant="outline" onClick={logout}>
-              ログアウト
-            </Button>
-          </div>
-        ) : (
-          <Button
-            size="lg"
-            onClick={() => (window.location.href = getLoginUrl())}
-          >
-            ログイン
-          </Button>
-        )}
+      <main>
+        {/* Example: lucide-react for icons */}
+        <Loader2 className="animate-spin" />
+        Example Page
+        {/* Example: Streamdown for markdown rendering */}
+        <Streamdown>Any **markdown** content</Streamdown>
+        <Button variant="default">Example Button</Button>
       </main>
     </div>
   );
