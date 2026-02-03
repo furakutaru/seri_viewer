@@ -184,9 +184,9 @@ export default function HorseList() {
                   <td className="border p-3">{horse.lotNumber}</td>
                   <td className="border p-3">{horse.sex}</td>
                   <td className="border p-3">
-                    <div className="text-sm space-y-1">
-                      <div className="font-medium whitespace-nowrap">{horse.sireName || '-'}</div>
-                      <div className="text-xs text-muted-foreground whitespace-nowrap">{horse.damName || '-'}</div>
+                    <div className="text-sm">
+                      <div>{horse.sireName}</div>
+                      <div className="text-muted-foreground">{horse.damName}</div>
                     </div>
                   </td>
                   <td className="border p-3">{horse.height} cm</td>
