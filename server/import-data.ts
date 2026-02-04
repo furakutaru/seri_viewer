@@ -97,17 +97,22 @@ export async function parseCatalog(catalogUrl: string) {
     }
 
     // Parse each row
+    // Table structure (based on HTML analysis):
+    // TD 0: lot number, TD 1: photo, TD 2: video, TD 3: homepage
+    // TD 4: sex, TD 5: color, TD 6: birthDate
+    // TD 7: sireName, TD 8: damName, TD 9: region
+    // TD 10: consignor, TD 11: breeder, TD 12: result, TD 13: buyer, TD 14: price
     table.find('tr').each((_, row) => {
       const cells = $(row).find('td');
-      if (cells.length < 8) return; // Skip rows with insufficient cells
+      if (cells.length < 15) return; // Skip rows with insufficient cells
 
       const lotNumber = parseInt($(cells[0]).text().trim());
       if (isNaN(lotNumber)) return; // Skip non-numeric lot numbers
 
-      let sireName = cleanText($(cells[6]).text());
-      let damName = cleanText($(cells[7]).text());
+      let sireName = cleanText($(cells[7]).text());
+      let damName = cleanText($(cells[8]).text());
 
-      // Fix duplicate names (e.g., "コパノリッキー コパノリッキー" -> "コパノリッキー")
+      // Fix duplicate names
       if (sireName && sireName.includes(' ')) {
         const parts = sireName.split(' ');
         if (parts[0] === parts[1]) {
@@ -124,18 +129,18 @@ export async function parseCatalog(catalogUrl: string) {
 
       horseList.push({
         lotNumber,
-        horseName: cleanText($(cells[1]).text()),
-        sex: cleanText($(cells[2]).text()),
-        color: cleanText($(cells[3]).text()),
-        birthDate: cleanText($(cells[4]).text()) || null,
+        horseName: `No.${lotNumber}`,
+        sex: cleanText($(cells[4]).text()),
+        color: cleanText($(cells[5]).text()),
+        birthDate: cleanText($(cells[6]).text()) || null,
         sireName,
         damName,
-        consignor: cleanText($(cells[8]).text()),
-        breeder: cleanText($(cells[9]).text()),
-        priceEstimate: parseInt(cleanText($(cells[10]).text())) || null,
-        photoUrl: $(cells[11]).find('img').attr('src') || null,
-        videoUrl: $(cells[12]).find('a').attr('href') || null,
-        pedigreePdfUrl: $(cells[13]).find('a').attr('href') || null,
+        consignor: cleanText($(cells[10]).text()),
+        breeder: cleanText($(cells[11]).text()),
+        priceEstimate: parseInt(cleanText($(cells[14]).text()).replace(/[^0-9]/g, '')) || null,
+        photoUrl: $(cells[1]).find('img').attr('src') || null,
+        videoUrl: $(cells[2]).find('a').attr('href') || null,
+        pedigreePdfUrl: $(cells[0]).find('a').attr('href') || null,
       });
     });
 
@@ -276,11 +281,24 @@ export async function importCatalogAndMeasurements(
     const mergedData = catalogData.map((horse: any) => {
       const measurements = measurementsMap.get(horse.lotNumber);
 
-      // Convert birthDate to Date if it's a string
-      let birthDate = null;
+      // Convert birthDate to Date object for MySQL timestamp
+      // Format: "YYYY/MM/DD" (e.g., "2024/04/21")
+      let birthDate: Date | null = null;
       if (horse.birthDate) {
         if (typeof horse.birthDate === 'string') {
-          birthDate = new Date(horse.birthDate);
+          // Parse "YYYY/MM/DD" format
+          const dateMatch = horse.birthDate.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+          if (dateMatch) {
+            const [, year, month, day] = dateMatch;
+            // Create date object for MySQL
+            birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          } else {
+            // Try default parsing as fallback
+            const date = new Date(horse.birthDate);
+            if (!isNaN(date.getTime())) {
+              birthDate = date;
+            }
+          }
         } else if (horse.birthDate instanceof Date) {
           birthDate = horse.birthDate;
         }
@@ -289,7 +307,7 @@ export async function importCatalogAndMeasurements(
       return {
         ...horse,
         saleId,
-        birthDate,
+        birthDate: birthDate || null,
         height: measurements?.height ? parseFloat(measurements.height.toString()) : null,
         girth: measurements?.girth ? parseFloat(measurements.girth.toString()) : null,
         cannon: measurements?.cannon ? parseFloat(measurements.cannon.toString()) : null,
@@ -325,7 +343,10 @@ export async function importCatalogAndMeasurements(
             await db.insert(horses).values(horse);
             insertedCount++;
           } catch (individualErr: any) {
-            console.error(`Failed to insert horse ${horse.lotNumber}:`, individualErr.message);
+            console.error(`Failed to insert horse ${horse.lotNumber}:`, {
+              error: individualErr.message,
+              birthDate: horse.birthDate,
+            });
           }
         }
       }

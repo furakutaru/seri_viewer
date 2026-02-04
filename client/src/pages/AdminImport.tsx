@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
 
 export default function AdminImport() {
+  const [, setLocation] = useLocation();
   const [catalogUrl, setCatalogUrl] = useState('');
   const [pdfUrlsText, setPdfUrlsText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -76,7 +78,7 @@ export default function AdminImport() {
               placeholder="https://w2.hba.or.jp/upload/..."
               value={catalogUrl}
               onChange={(e) => setCatalogUrl(e.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || (result && result.success)}
               className="w-full"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -93,7 +95,7 @@ export default function AdminImport() {
               placeholder="https://w2.hba.or.jp/upload/...&#10;https://w2.hba.or.jp/upload/..."
               value={pdfUrlsText}
               onChange={(e) => setPdfUrlsText(e.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || (result && result.success)}
               className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
             />
             <p className="text-xs text-gray-500 mt-2">
@@ -126,14 +128,23 @@ export default function AdminImport() {
             </div>
           )}
 
-          {/* インポートボタン */}
-          <Button
-            onClick={handleImport}
-            disabled={isLoading || !catalogUrl.trim() || getPdfUrls().length === 0}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg"
-          >
-            {isLoading ? 'データを取り込み中...' : 'データを取り込む'}
-          </Button>
+          {/* インポートボタン または 一覧確認ボタン */}
+          {result && result.success ? (
+            <Button
+              onClick={() => setLocation('/horses')}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg"
+            >
+              一覧を確認
+            </Button>
+          ) : (
+            <Button
+              onClick={handleImport}
+              disabled={isLoading || !catalogUrl.trim() || getPdfUrls().length === 0}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg"
+            >
+              {isLoading ? 'データを取り込み中...' : 'データを取り込む'}
+            </Button>
+          )}
 
           {/* キャッシュクリア情報 */}
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
