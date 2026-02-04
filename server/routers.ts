@@ -1,9 +1,7 @@
+import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { COOKIE_NAME } from "../shared/const";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
-import { importCatalogAndMeasurements } from "./import-data";
-import { z } from "zod";
+import { publicProcedure, router } from "./_core/trpc";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -19,38 +17,12 @@ export const appRouter = router({
     }),
   }),
 
-  // Data import router
-  admin: router({
-    importData: protectedProcedure
-      .input(z.object({
-        catalogUrl: z.string().url(),
-        pdfUrls: z.array(z.string().url()),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        // Admin only
-        if (ctx.user?.role !== 'admin') {
-          throw new Error('Admin access required');
-        }
-
-        try {
-          // Import catalog and measurements
-          const result = await importCatalogAndMeasurements(
-            1,
-            input.catalogUrl,
-            input.pdfUrls
-          );
-
-          return {
-            success: true,
-            message: `Successfully imported ${result.insertedCount} horses`,
-            details: result,
-          };
-        } catch (error: any) {
-          console.error('Import failed:', error);
-          throw new Error(`Import failed: ${error.message}`);
-        }
-      }),
-  }),
+  // TODO: add feature routers here, e.g.
+  // todo: router({
+  //   list: protectedProcedure.query(({ ctx }) =>
+  //     db.getUserTodos(ctx.user.id)
+  //   ),
+  // }),
 });
 
 export type AppRouter = typeof appRouter;
