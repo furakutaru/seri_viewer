@@ -7,6 +7,7 @@ import * as cheerio from 'cheerio';
 import { getDb } from './db';
 import { horses, sales } from '../drizzle/schema';
 import iconv from 'iconv-lite';
+import crypto from 'crypto';
 
 // キャッシュディレクトリ
 const CACHE_DIR = path.join(process.cwd(), '.cache');
@@ -24,7 +25,7 @@ function ensureCacheDir() {
  * URLのハッシュを生成してキャッシュキーとする
  */
 function getCacheKey(url: string): string {
-  return require('crypto')
+  return crypto
     .createHash('md5')
     .update(url)
     .digest('hex');
