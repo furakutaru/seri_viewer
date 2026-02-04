@@ -337,9 +337,21 @@ export async function importCatalogAndMeasurements(
     console.log('\n[Step 3] Merging catalog and measurement data...');
     const mergedData = catalogData.map((horse: any) => {
       const measurements = measurementsMap.get(horse.lotNumber);
+      
+      // Convert birthDate to Date if it's a string
+      let birthDate = null;
+      if (horse.birthDate) {
+        if (typeof horse.birthDate === 'string') {
+          birthDate = new Date(horse.birthDate);
+        } else if (horse.birthDate instanceof Date) {
+          birthDate = horse.birthDate;
+        }
+      }
+      
       return {
         ...horse,
         saleId,
+        birthDate,
         height: measurements?.height ? parseFloat(measurements.height.toString()) : null,
         girth: measurements?.girth ? parseFloat(measurements.girth.toString()) : null,
         cannon: measurements?.cannon ? parseFloat(measurements.cannon.toString()) : null,
@@ -360,19 +372,25 @@ export async function importCatalogAndMeasurements(
       try {
         await db.insert(horses).values(horse);
         insertedCount++;
-      } catch (err) {
-        console.warn(`Failed to insert horse ${horse.lotNumber}:`, err);
+      } catch (err: any) {
+        console.error(`Failed to insert horse ${horse.lotNumber}:`, {
+          error: err.message,
+          code: err.code,
+          sql: err.sql,
+        });
       }
     }
     
     console.log(`✓ Inserted ${insertedCount} horses into database`);
     
     return {
-      success: true,
+      success: insertedCount > 0,
       catalogCount: catalogData.length,
       measurementCount: measurementsMap.size,
       insertedCount,
-      message: `Successfully imported ${insertedCount} horses`,
+      message: insertedCount > 0 
+        ? `Successfully imported ${insertedCount} horses`
+        : `Warning: No horses were inserted. Check logs for details.`,
     };
   } catch (error) {
     console.error('Error importing data:', error);

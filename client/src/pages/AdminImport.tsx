@@ -6,7 +6,7 @@ import { trpc } from '@/lib/trpc';
 
 export default function AdminImport() {
   const [catalogUrl, setCatalogUrl] = useState('');
-  const [pdfUrls, setPdfUrls] = useState<string[]>(['']);
+  const [pdfUrlsText, setPdfUrlsText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,18 +24,12 @@ export default function AdminImport() {
     },
   });
 
-  const handleAddPdfUrl = () => {
-    setPdfUrls([...pdfUrls, '']);
-  };
-
-  const handleRemovePdfUrl = (index: number) => {
-    setPdfUrls(pdfUrls.filter((_, i) => i !== index));
-  };
-
-  const handlePdfUrlChange = (index: number, value: string) => {
-    const newUrls = [...pdfUrls];
-    newUrls[index] = value;
-    setPdfUrls(newUrls);
+  // Parse PDF URLs from textarea (one per line)
+  const getPdfUrls = (): string[] => {
+    return pdfUrlsText
+      .split('\n')
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0);
   };
 
   const handleImport = async () => {
@@ -44,7 +38,7 @@ export default function AdminImport() {
       return;
     }
 
-    const validPdfUrls = pdfUrls.filter((url) => url.trim());
+    const validPdfUrls = getPdfUrls();
     if (validPdfUrls.length === 0) {
       setError('少なくとも1つのPDF URLを入力してください');
       return;
@@ -95,88 +89,57 @@ export default function AdminImport() {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               PDF測尺データ URL（複数可）
             </label>
-            <div className="space-y-3">
-              {pdfUrls.map((url, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    type="url"
-                    placeholder="https://..."
-                    value={url}
-                    onChange={(e) => handlePdfUrlChange(index, e.target.value)}
-                    disabled={isLoading}
-                    className="flex-1"
-                  />
-                  {pdfUrls.length > 1 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => handleRemovePdfUrl(index)}
-                      disabled={isLoading}
-                      className="px-4"
-                    >
-                      削除
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              onClick={handleAddPdfUrl}
+            <textarea
+              placeholder="https://w2.hba.or.jp/upload/...&#10;https://w2.hba.or.jp/upload/..."
+              value={pdfUrlsText}
+              onChange={(e) => setPdfUrlsText(e.target.value)}
               disabled={isLoading}
-              className="mt-3 w-full"
-            >
-              + PDF URLを追加
-            </Button>
+              className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+            />
             <p className="text-xs text-gray-500 mt-2">
-              複数のPDFファイルがある場合は、すべてのURLを入力してください
+              複数のPDF URLを1行ずつ入力してください（改行区切り）
             </p>
+            {getPdfUrls().length > 0 && (
+              <p className="text-xs text-green-600 mt-1">
+                {getPdfUrls().length}個のPDF URLが入力されています
+              </p>
+            )}
           </div>
 
-          {/* エラーメッセージ */}
+          {/* エラー表示 */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">
-                <span className="font-semibold">エラー:</span> {error}
-              </p>
+              <p className="text-red-700 text-sm font-semibold">エラー</p>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
             </div>
           )}
 
-          {/* 成功メッセージ */}
+          {/* 結果表示 */}
           {result && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800 font-semibold mb-2">✓ データ取り込み完了</p>
-              <ul className="text-sm text-green-700 space-y-1">
-                <li>• カタログから抽出: {result.catalogCount} 頭</li>
-                <li>• 測尺データ: {result.measurementCount} 件</li>
-                <li>• データベースに保存: {result.insertedCount} 頭</li>
-              </ul>
+              <p className="text-green-700 text-sm font-semibold">✓ {result.message}</p>
+              <div className="text-green-600 text-sm mt-2 space-y-1">
+                <p>• カタログから抽出: {result.catalogCount} 頭</p>
+                <p>• 測尺データ: {result.measurementCount} 件</p>
+                <p>• データベースに保存: {result.insertedCount} 頭</p>
+              </div>
             </div>
           )}
 
-          {/* 進捗表示 */}
-          {isLoading && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <span className="inline-block animate-spin mr-2">⏳</span>
-                データを取り込み中です。しばらくお待ちください...
-              </p>
-            </div>
-          )}
-
-          {/* 取り込みボタン */}
+          {/* インポートボタン */}
           <Button
             onClick={handleImport}
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
+            disabled={isLoading || !catalogUrl.trim() || getPdfUrls().length === 0}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg"
           >
             {isLoading ? 'データを取り込み中...' : 'データを取り込む'}
           </Button>
 
-          {/* キャッシュ情報 */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs text-gray-600">
-              <span className="font-semibold">💾 キャッシュについて:</span> Webカタログと測尺PDFは自動的にキャッシュされます。
-              同じURLを再度使用する場合、キャッシュから読み込まれるため、スクレイピング先への負荷を軽減できます。
+          {/* キャッシュクリア情報 */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-700 text-sm font-semibold">💡 キャッシュについて</p>
+            <p className="text-blue-600 text-sm mt-1">
+              Webカタログと測尺PDFは自動的にキャッシュされます。同じURLを再度使用する場合、キャッシュから読み込まれるため高速です。
             </p>
           </div>
         </Card>
