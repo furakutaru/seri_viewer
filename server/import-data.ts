@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -7,16 +8,127 @@ import { getDb } from './db';
 import { horses, sales } from '../drizzle/schema';
 import iconv from 'iconv-lite';
 
+// キャッシュディレクトリ
+const CACHE_DIR = path.join(process.cwd(), '.cache');
+
+/**
+ * キャッシュディレクトリを初期化
+ */
+function ensureCacheDir() {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+}
+
+/**
+ * URLのハッシュを生成してキャッシュキーとする
+ */
+function getCacheKey(url: string): string {
+  return require('crypto')
+    .createHash('md5')
+    .update(url)
+    .digest('hex');
+}
+
+/**
+ * HTMLをキャッシュから取得または新規ダウンロード
+ */
+async function fetchAndCacheHtml(catalogUrl: string): Promise<string> {
+  ensureCacheDir();
+  
+  const cacheKey = getCacheKey(catalogUrl);
+  const cachePath = path.join(CACHE_DIR, `${cacheKey}.html`);
+  const cacheMetaPath = path.join(CACHE_DIR, `${cacheKey}.html.meta.json`);
+  
+  // キャッシュが存在するか確認
+  if (fs.existsSync(cachePath) && fs.existsSync(cacheMetaPath)) {
+    try {
+      const meta = JSON.parse(fs.readFileSync(cacheMetaPath, 'utf-8'));
+      console.log(`✓ Using cached HTML (downloaded: ${meta.downloadedAt})`);
+      return fs.readFileSync(cachePath, 'utf-8');
+    } catch (e) {
+      console.warn('Failed to read cache metadata, re-downloading...');
+    }
+  }
+  
+  // キャッシュが無い場合はダウンロード
+  console.log(`Downloading catalog from: ${catalogUrl}`);
+  const response = await fetch(catalogUrl);
+  const buffer = await response.arrayBuffer();
+  
+  // Shift_JIS から UTF-8 に変換
+  const html = iconv.decode(Buffer.from(buffer), 'Shift_JIS');
+  
+  // キャッシュに保存
+  fs.writeFileSync(cachePath, html, 'utf-8');
+  fs.writeFileSync(cacheMetaPath, JSON.stringify({
+    url: catalogUrl,
+    downloadedAt: new Date().toISOString(),
+  }), 'utf-8');
+  
+  console.log(`✓ Cached HTML to ${cachePath}`);
+  return html;
+}
+
+/**
+ * PDFをキャッシュから取得または新規ダウンロード
+ */
+async function fetchAndCachePdf(pdfUrl: string): Promise<Buffer> {
+  ensureCacheDir();
+  
+  const cacheKey = getCacheKey(pdfUrl);
+  const cachePath = path.join(CACHE_DIR, `${cacheKey}.pdf`);
+  const cacheMetaPath = path.join(CACHE_DIR, `${cacheKey}.pdf.meta.json`);
+  
+  // キャッシュが存在するか確認
+  if (fs.existsSync(cachePath) && fs.existsSync(cacheMetaPath)) {
+    try {
+      const meta = JSON.parse(fs.readFileSync(cacheMetaPath, 'utf-8'));
+      console.log(`✓ Using cached PDF (downloaded: ${meta.downloadedAt})`);
+      return fs.readFileSync(cachePath);
+    } catch (e) {
+      console.warn('Failed to read PDF cache metadata, re-downloading...');
+    }
+  }
+  
+  // キャッシュが無い場合はダウンロード
+  console.log(`Downloading PDF from: ${pdfUrl}`);
+  const response = await fetch(pdfUrl);
+  const buffer = await response.arrayBuffer();
+  const bufferObj = Buffer.from(buffer);
+  
+  // キャッシュに保存
+  fs.writeFileSync(cachePath, bufferObj);
+  fs.writeFileSync(cacheMetaPath, JSON.stringify({
+    url: pdfUrl,
+    downloadedAt: new Date().toISOString(),
+    size: bufferObj.length,
+  }), 'utf-8');
+  
+  console.log(`✓ Cached PDF to ${cachePath}`);
+  return bufferObj;
+}
+
+/**
+ * キャッシュをクリア
+ */
+export function clearCache() {
+  if (fs.existsSync(CACHE_DIR)) {
+    const files = fs.readdirSync(CACHE_DIR);
+    for (const file of files) {
+      fs.unlinkSync(path.join(CACHE_DIR, file));
+    }
+    console.log('✓ Cache cleared');
+  }
+}
+
 /**
  * Webカタログを解析する関数
  */
 export async function parseCatalog(catalogUrl: string) {
   try {
-    console.log(`Downloading catalog from: ${catalogUrl}`);
-    const response = await fetch(catalogUrl);
-    const buffer = await response.arrayBuffer();
-    // Shift_JIS から UTF-8 に変換
-    const html = iconv.decode(Buffer.from(buffer), 'Shift_JIS');
+    // キャッシュから取得または新規ダウンロード
+    const html = await fetchAndCacheHtml(catalogUrl);
 
     const $ = cheerio.load(html);
     const horseList: any[] = [];
@@ -99,11 +211,8 @@ export async function parseCatalog(catalogUrl: string) {
  */
 export async function parsePdfMeasurements(pdfUrl: string) {
   try {
-    console.log(`Fetching PDF from: ${pdfUrl}`);
-    
-    const response = await fetch(pdfUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // キャッシュから取得または新規ダウンロード
+    const buffer = await fetchAndCachePdf(pdfUrl);
     
     const tmpDir = os.tmpdir();
     const pdfPath = path.join(tmpDir, `temp_${Date.now()}.pdf`);
@@ -144,7 +253,7 @@ export async function parsePdfMeasurements(pdfUrl: string) {
  * テキストから測尺データを解析（pdftotext -layout用）
  * PDFのレイアウトを保持したテキストから、各行の上場番号と測尺データを抽出
  */
-function parseMeasurementText(text: string) {
+export function parseMeasurementText(text: string) {
   const measurements: any[] = [];
   
   const lines = text.split('\n');
@@ -248,39 +357,10 @@ export async function importCatalogAndMeasurements(
     let insertedCount = 0;
     for (const horse of mergedData) {
       try {
-        const values: any = {
-          saleId: horse.saleId,
-          lotNumber: horse.lotNumber,
-          horseName: horse.horseName,
-        };
-        
-        // sex の値を enum に合わせてフィルタリング
-        if (horse.sex) {
-          const validSex = ['牡', '牝', 'セン'];
-          if (validSex.includes(horse.sex)) {
-            values.sex = horse.sex;
-          } else {
-            console.log(`[DEBUG] Invalid sex value for horse ${horse.lotNumber}: ${horse.sex}`);
-          }
-        }
-        
-        if (horse.color) values.color = horse.color;
-        if (horse.sireName) values.sireName = horse.sireName;
-        if (horse.damName) values.damName = horse.damName;
-        if (horse.consignor) values.consignor = horse.consignor;
-        if (horse.breeder) values.breeder = horse.breeder;
-        if (horse.height) values.height = horse.height;
-        if (horse.girth) values.girth = horse.girth;
-        if (horse.cannon) values.cannon = horse.cannon;
-        
-        console.log(`[DEBUG] Inserting horse ${horse.lotNumber}:`, JSON.stringify(values));
-        await db.insert(horses).values(values);
+        await db.insert(horses).values(horse);
         insertedCount++;
-      } catch (error: any) {
-        console.error(`Failed to insert horse ${horse.lotNumber}:`, error);
-        if (error.message) console.error(`Error message: ${error.message}`);
-        if (error.query) console.error(`Query: ${error.query}`);
-        if (error.params) console.error(`Params: ${JSON.stringify(error.params)}`);
+      } catch (err) {
+        console.warn(`Failed to insert horse ${horse.lotNumber}:`, err);
       }
     }
     
@@ -291,6 +371,7 @@ export async function importCatalogAndMeasurements(
       catalogCount: catalogData.length,
       measurementCount: measurementsMap.size,
       insertedCount,
+      message: `Successfully imported ${insertedCount} horses`,
     };
   } catch (error) {
     console.error('Error importing data:', error);

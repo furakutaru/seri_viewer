@@ -2,6 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import { importCatalogAndMeasurements } from "./import-data";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -17,12 +19,25 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  admin: router({
+    importData: publicProcedure
+      .input(z.object({
+        catalogUrl: z.string().url(),
+        pdfUrls: z.array(z.string().url()),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const result = await importCatalogAndMeasurements(
+            1,
+            input.catalogUrl,
+            input.pdfUrls
+          );
+          return result;
+        } catch (error: any) {
+          throw new Error(`Import failed: ${error.message}`);
+        }
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
