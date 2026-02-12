@@ -1,9 +1,10 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { importCatalogAndMeasurements } from "./import-data";
+import { getAllHorses, getHorseById, getUserCheck, saveUserCheck, getPopularityStats } from "./db";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -17,6 +18,43 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+
+  horses: router({
+    getAll: publicProcedure.query(async () => {
+      return await getAllHorses();
+    }),
+    getById: publicProcedure
+      .input(z.number())
+      .query(async ({ input }) => {
+        return await getHorseById(input);
+      }),
+    getUserCheck: protectedProcedure
+      .input(z.number())
+      .query(async ({ input, ctx }) => {
+        return await getUserCheck(ctx.user.id, input);
+      }),
+    saveUserCheck: protectedProcedure
+      .input(z.object({
+        horseId: z.number(),
+        evaluation: z.enum(["◎", "○", "△"]).nullable(),
+        memo: z.string(),
+        isEliminated: z.boolean(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return await saveUserCheck(
+          ctx.user.id,
+          input.horseId,
+          input.evaluation,
+          input.memo,
+          input.isEliminated
+        );
+      }),
+    getPopularityStats: publicProcedure
+      .input(z.number())
+      .query(async ({ input }) => {
+        return await getPopularityStats(input);
+      }),
   }),
 
   admin: router({

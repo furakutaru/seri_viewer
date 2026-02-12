@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS userChecks (\n  id int AUTO_INCREMENT NOT NULL,\n  userId int NOT NULL,\n  horseId int NOT NULL,\n  evaluation enum('◎', '○', '△'),\n  memo text,\n  isEliminated boolean NOT NULL DEFAULT false,\n  totalScore int NOT NULL DEFAULT 0,\n  createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  PRIMARY KEY (id),\n  UNIQUE KEY userChecks_userId_horseId_unique (userId, horseId)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2NrewRPWF9fps2G.root --database 9uTi5p7hfRwyJVLtkUdEjX --execute CREATE TABLE IF NOT EXISTS userChecks (\n  id int AUTO_INCREMENT NOT NULL,\n  userId int NOT NULL,\n  horseId int NOT NULL,\n  evaluation enum('◎', '○', '△'),\n  memo text,\n  isEliminated boolean NOT NULL DEFAULT false,\n  totalScore int NOT NULL DEFAULT 0,\n  createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  PRIMARY KEY (id),\n  UNIQUE KEY userChecks_userId_horseId_unique (userId, horseId)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2787
+}

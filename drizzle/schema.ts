@@ -48,7 +48,6 @@ export const horses = mysqlTable("horses", {
   id: int("id").autoincrement().primaryKey(),
   saleId: int("saleId").notNull(),
   lotNumber: int("lotNumber").notNull(),
-  horseName: varchar("horseName", { length: 256 }),
   sex: mysqlEnum("sex", ["牡", "牝", "セン"]),
   color: varchar("color", { length: 64 }),
   birthDate: timestamp("birthDate"),

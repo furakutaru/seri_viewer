@@ -1,0 +1,50 @@
+{
+  "query": "SELECT lotNumber, COUNT(*) as count FROM horses GROUP BY lotNumber HAVING count > 1 ORDER BY count DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2NrewRPWF9fps2G.root --database 9uTi5p7hfRwyJVLtkUdEjX --execute SELECT lotNumber, COUNT(*) as count FROM horses GROUP BY lotNumber HAVING count > 1 ORDER BY count DESC LIMIT 10;",
+  "rows": [
+    {
+      "lotNumber": "1365",
+      "count": "5"
+    },
+    {
+      "lotNumber": "240",
+      "count": "5"
+    },
+    {
+      "lotNumber": "201",
+      "count": "5"
+    },
+    {
+      "lotNumber": "70",
+      "count": "5"
+    },
+    {
+      "lotNumber": "1041",
+      "count": "5"
+    },
+    {
+      "lotNumber": "106",
+      "count": "5"
+    },
+    {
+      "lotNumber": "855",
+      "count": "5"
+    },
+    {
+      "lotNumber": "694",
+      "count": "5"
+    },
+    {
+      "lotNumber": "771",
+      "count": "5"
+    },
+    {
+      "lotNumber": "821",
+      "count": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "lotNumber\tcount\n1365\t5\n240\t5\n201\t5\n70\t5\n1041\t5\n106\t5\n855\t5\n694\t5\n771\t5\n821\t5\n",
+  "stderr": "",
+  "execution_time_ms": 1823
+}
