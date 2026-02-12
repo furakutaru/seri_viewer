@@ -100,7 +100,7 @@ export default function Horses() {
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">馬一覧</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">上場馬一覧</h1>
             <p className="text-gray-600">登録されている馬の一覧を表示しています</p>
           </div>
           <Button
@@ -190,6 +190,7 @@ export default function Horses() {
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">体高</th>
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">胸囲</th>
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">管囲</th>
+                    <th className="px-6 py-3 text-left font-semibold text-gray-700">詳細</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,10 +203,9 @@ export default function Horses() {
                     return (
                       <tr
                         key={horse.id}
-                        className={`border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors ${
+                        className={`border-b border-gray-200 hover:bg-blue-50 transition-colors ${
                           index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                         }`}
-                        onClick={() => setLocation(`/horses/${horse.id}`)}
                       >
                         <td className="px-6 py-4 text-sm font-semibold text-blue-600">
                           {horse.lotNumber}
@@ -234,6 +234,14 @@ export default function Horses() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-700">
                           {horse.cannon ? `${horse.cannon}cm` : '-'}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <Button
+                            onClick={() => setLocation(`/horses/${horse.id}`)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-semibold"
+                          >
+                            詳細を見る
+                          </Button>
                         </td>
                       </tr>
                     );
