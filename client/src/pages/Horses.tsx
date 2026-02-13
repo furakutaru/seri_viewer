@@ -16,21 +16,15 @@ export default function Horses() {
   // Fetch all horses
   const { data: horses, isLoading, error } = trpc.horses.getAll.useQuery();
 
-  // Fetch popularity stats for all horses
-  const popularityQueries = horses?.map((horse) =>
-    trpc.horses.getPopularityStats.useQuery(horse.id)
-  ) || [];
-
   // Build popularity map
   const popularityMap = useMemo(() => {
     const map: Record<number, any> = {};
-    horses?.forEach((horse, index) => {
-      if (popularityQueries[index]?.data) {
-        map[horse.id] = popularityQueries[index].data;
-      }
-    });
+    if (!horses) return map;
+    
+    // Note: We would need to fetch popularity stats separately
+    // For now, return empty map to avoid infinite queries
     return map;
-  }, [horses, popularityQueries]);
+  }, [horses]);
 
   // Filter and sort horses
   const filteredHorses = useMemo(() => {
@@ -176,17 +170,6 @@ export default function Horses() {
                     </th>
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">父馬名</th>
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">母馬名</th>
-                    <th className="px-6 py-3 text-left">
-                      <button
-                        onClick={() => handleSort('popularity')}
-                        className="font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1"
-                      >
-                        人気指数
-                        {sortBy === 'popularity' && (
-                          <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </button>
-                    </th>
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">体高</th>
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">胸囲</th>
                     <th className="px-6 py-3 text-left font-semibold text-gray-700">管囲</th>
@@ -195,11 +178,6 @@ export default function Horses() {
                 </thead>
                 <tbody>
                   {filteredHorses.map((horse: any, index: number) => {
-                    const stats = popularityMap[horse.id];
-                    const popularityScore = stats
-                      ? (stats.score / (stats.total * 3) * 100).toFixed(0)
-                      : '-';
-
                     return (
                       <tr
                         key={horse.id}
@@ -219,13 +197,6 @@ export default function Horses() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-700">{horse.sireName || '-'}</td>
                         <td className="px-6 py-4 text-sm text-gray-700">{horse.damName || '-'}</td>
-                        <td className="px-6 py-4 text-sm font-bold">
-                          {popularityScore !== '-' ? (
-                            <span className="text-orange-600">{popularityScore}%</span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
                         <td className="px-6 py-4 text-sm text-gray-700">
                           {horse.height ? `${horse.height}cm` : '-'}
                         </td>

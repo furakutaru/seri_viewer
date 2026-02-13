@@ -290,8 +290,8 @@ export async function importCatalogAndMeasurements(
           const dateMatch = horse.birthDate.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
           if (dateMatch) {
             const [, year, month, day] = dateMatch;
-            // Create date object for MySQL
-            birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            // Create date object using UTC to avoid timezone issues
+            birthDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day)));
           } else {
             // Try default parsing as fallback
             const date = new Date(horse.birthDate);

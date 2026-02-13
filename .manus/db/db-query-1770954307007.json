@@ -1,0 +1,35 @@
+{
+  "query": "SELECT id, lotNumber, birthDate FROM horses LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2NrewRPWF9fps2G.root --database 9uTi5p7hfRwyJVLtkUdEjX --execute SELECT id, lotNumber, birthDate FROM horses LIMIT 5;",
+  "rows": [
+    {
+      "id": "90001",
+      "lotNumber": "1",
+      "birthDate": "NULL"
+    },
+    {
+      "id": "90002",
+      "lotNumber": "2",
+      "birthDate": "NULL"
+    },
+    {
+      "id": "90003",
+      "lotNumber": "3",
+      "birthDate": "NULL"
+    },
+    {
+      "id": "90004",
+      "lotNumber": "4",
+      "birthDate": "NULL"
+    },
+    {
+      "id": "90005",
+      "lotNumber": "5",
+      "birthDate": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tlotNumber\tbirthDate\n90001\t1\tNULL\n90002\t2\tNULL\n90003\t3\tNULL\n90004\t4\tNULL\n90005\t5\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1650
+}

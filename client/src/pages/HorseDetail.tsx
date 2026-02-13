@@ -6,6 +6,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 
+// Helper function to convert relative URLs to absolute URLs
+function getAbsoluteUrl(relativeUrl: string | null | undefined, catalogUrl: string): string | null {
+  if (!relativeUrl) return null;
+  
+  // If already absolute, return as is
+  if (relativeUrl.startsWith('http')) return relativeUrl;
+  
+  // Get the base URL from catalog URL
+  const url = new URL(catalogUrl);
+  const baseUrl = url.origin + url.pathname.substring(0, url.pathname.lastIndexOf('/') + 1);
+  
+  // Handle relative paths
+  if (relativeUrl.startsWith('/')) {
+    return url.origin + relativeUrl;
+  }
+  
+  // Handle relative paths like ../img/photo.png or pic/20250801-01-0001-1.jpg
+  return new URL(relativeUrl, baseUrl).href;
+}
+
 export default function HorseDetail() {
   const [location, setLocation] = useLocation();
   const [match, params] = useRoute('/horses/:id');
@@ -94,6 +114,11 @@ export default function HorseDetail() {
     );
   }
 
+  // Get absolute URLs for photo and pedigree PDF
+  const catalogBaseUrl = 'https://wmp512t973.user-space.cdn.idcfcloud.net/catalog/20250801/';
+  const photoUrl = getAbsoluteUrl(horse.photoUrl, catalogBaseUrl + 'index_all250818.html');
+  const pedigreePdfUrl = getAbsoluteUrl(horse.pedigreePdfUrl, catalogBaseUrl + 'index_all250818.html');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
       <div className="max-w-6xl mx-auto">
@@ -115,6 +140,21 @@ export default function HorseDetail() {
         <div className="grid grid-cols-3 gap-8">
           {/* メイン情報 */}
           <div className="col-span-2 space-y-6">
+            {/* 写真 */}
+            {photoUrl && (
+              <Card className="p-6 shadow-lg">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">写真</h2>
+                <img
+                  src={photoUrl}
+                  alt={`上場番号 ${horse.lotNumber}`}
+                  className="w-full h-auto rounded-lg object-cover max-h-96"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </Card>
+            )}
+
             {/* 基本情報 */}
             <Card className="p-6 shadow-lg">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">基本情報</h2>
@@ -159,6 +199,18 @@ export default function HorseDetail() {
                   <p className="text-sm text-gray-600 font-semibold">母馬</p>
                   <p className="text-lg text-gray-900 font-semibold">{horse.damName || '-'}</p>
                 </div>
+                {pedigreePdfUrl && (
+                  <div className="mt-4">
+                    <a
+                      href={pedigreePdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold"
+                    >
+                      📄 血統書PDFを表示
+                    </a>
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -255,47 +307,96 @@ export default function HorseDetail() {
                 {/* 保存ボタン */}
                 <Button
                   onClick={handleSaveEvaluation}
-                  disabled={saveUserCheck.isPending}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3"
                 >
-                  {saveUserCheck.isPending ? '保存中...' : '評価を保存'}
+                  評価を保存
                 </Button>
               </div>
             </Card>
 
             {/* 人気指数 */}
-            <Card className="p-6 shadow-lg bg-gradient-to-br from-yellow-50 to-orange-50">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">人気指数</h2>
-              {popularityStats && popularityStats.total > 0 ? (
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <p className="text-4xl font-bold text-orange-600">
-                      {(popularityStats.score / (popularityStats.total * 3) * 100).toFixed(0)}%
-                    </p>
-                    <p className="text-sm text-gray-600 mt-2">{popularityStats.total}人の評価</p>
+            {popularityStats && (
+              <Card className="p-6 shadow-lg">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">人気指数</h2>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-semibold text-gray-700">◎ 評価</span>
+                      <span className="text-lg font-bold text-green-600">{popularityStats.countExcellent}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full"
+                        style={{
+                          width: `${
+                            popularityStats.countExcellent +
+                            popularityStats.countGood +
+                            popularityStats.countFair >
+                            0
+                              ? (popularityStats.countExcellent /
+                                  (popularityStats.countExcellent +
+                                    popularityStats.countGood +
+                                    popularityStats.countFair)) *
+                                100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">◎ 優秀</span>
-                      <span className="text-sm font-bold text-green-600">{popularityStats.countExcellent}人</span>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-semibold text-gray-700">○ 評価</span>
+                      <span className="text-lg font-bold text-blue-600">{popularityStats.countGood}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">○ 良好</span>
-                      <span className="text-sm font-bold text-blue-600">{popularityStats.countGood}人</span>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{
+                          width: `${
+                            popularityStats.countExcellent +
+                            popularityStats.countGood +
+                            popularityStats.countFair >
+                            0
+                              ? (popularityStats.countGood /
+                                  (popularityStats.countExcellent +
+                                    popularityStats.countGood +
+                                    popularityStats.countFair)) *
+                                100
+                              : 0
+                          }%`,
+                        }}
+                      />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">△ 要検討</span>
-                      <span className="text-sm font-bold text-yellow-600">{popularityStats.countFair}人</span>
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-semibold text-gray-700">△ 評価</span>
+                      <span className="text-lg font-bold text-orange-600">{popularityStats.countFair}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-orange-600 h-2 rounded-full"
+                        style={{
+                          width: `${
+                            popularityStats.countExcellent +
+                            popularityStats.countGood +
+                            popularityStats.countFair >
+                            0
+                              ? (popularityStats.countFair /
+                                  (popularityStats.countExcellent +
+                                    popularityStats.countGood +
+                                    popularityStats.countFair)) *
+                                100
+                              : 0
+                          }%`,
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-400">-</p>
-                  <p className="text-sm text-gray-600 mt-2">まだ評価がありません</p>
-                </div>
-              )}
-            </Card>
+              </Card>
+            )}
           </div>
         </div>
       </div>

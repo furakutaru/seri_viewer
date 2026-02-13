@@ -54,17 +54,19 @@ export default function Home() {
             </div>
           </Card>
 
-          {/* 馬一覧 */}
+          {/* 上場馬一覧 */}
           <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
             <div className="flex flex-col items-center text-center">
               <div className="text-4xl mb-4">🐴</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">馬一覧を表示</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">上場馬一覧</h3>
               <p className="text-gray-600 mb-6">
                 登録されている馬の一覧を確認
               </p>
-              <Button variant="outline" className="w-full" disabled>
-                馬一覧を詳細でいてみる
-              </Button>
+              <Link href="/horses">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                  一覧を表示
+                </Button>
+              </Link>
             </div>
           </Card>
         </div>
