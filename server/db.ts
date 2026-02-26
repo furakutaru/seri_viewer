@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, horses, userChecks } from "../drizzle/schema";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { InsertUser, users, horses, userChecks, sales } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -9,7 +10,8 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL);
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -68,7 +70,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -105,6 +108,66 @@ export async function getAllHorses() {
   }
 }
 
+export async function getAllSales() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get sales: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(sales).orderBy(sales.saleDate);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get sales:", error);
+    return [];
+  }
+}
+
+export async function getAllHorsesWithStats() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get horses with stats: database not available");
+    return [];
+  }
+
+  try {
+    const allHorses = await db
+      .select({
+        horse: horses,
+        sale: sales,
+      })
+      .from(horses)
+      .leftJoin(sales, eq(horses.saleId, sales.id));
+
+    const allChecks = await db.select().from(userChecks);
+
+    return allHorses.map(({ horse, sale }) => {
+      const checks = allChecks.filter(c => c.horseId === horse.id);
+      const countExcellent = checks.filter(c => c.evaluation === '◎').length;
+      const countGood = checks.filter(c => c.evaluation === '○').length;
+      const countFair = checks.filter(c => c.evaluation === '△').length;
+      const total = checks.length;
+      const score = countExcellent * 3 + countGood * 2 + countFair * 1;
+
+      return {
+        ...horse,
+        sale,
+        stats: {
+          countExcellent,
+          countGood,
+          countFair,
+          total,
+          score
+        }
+      };
+    });
+  } catch (error) {
+    console.error("[Database] Failed to get horses with stats:", error);
+    return [];
+  }
+}
+
 export async function getHorseById(id: number) {
   const db = await getDb();
   if (!db) {
@@ -113,8 +176,22 @@ export async function getHorseById(id: number) {
   }
 
   try {
-    const result = await db.select().from(horses).where(eq(horses.id, id)).limit(1);
-    return result.length > 0 ? result[0] : undefined;
+    const result = await db
+      .select({
+        horse: horses,
+        sale: sales,
+      })
+      .from(horses)
+      .leftJoin(sales, eq(horses.saleId, sales.id))
+      .where(eq(horses.id, id))
+      .limit(1);
+
+    if (result.length === 0) return undefined;
+
+    return {
+      ...result[0].horse,
+      sale: result[0].sale,
+    };
   } catch (error) {
     console.error("[Database] Failed to get horse:", error);
     return undefined;
