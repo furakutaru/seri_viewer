@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
-import { trpc } from "@/_core/trpc";
+import { trpc } from "@/lib/trpc";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
