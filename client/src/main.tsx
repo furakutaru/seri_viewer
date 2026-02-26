@@ -8,6 +8,21 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 
+// Global error handler for catching early runtime crashes
+if (typeof window !== "undefined") {
+  window.onerror = (message, source, lineno, colno, error) => {
+    console.error("GLOBAL ERROR:", { message, source, lineno, colno, error });
+    const root = document.getElementById("root");
+    if (root) {
+      root.innerHTML = `<div style="padding: 20px; color: red; font-family: sans-serif;">
+        <h2>Runtime Error</h2>
+        <pre>${message}\n${error?.stack || ""}</pre>
+        <button onclick="window.location.reload()">Reload</button>
+      </div>`;
+    }
+  };
+}
+
 const queryClient = new QueryClient();
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
@@ -38,8 +53,10 @@ queryClient.getMutationCache().subscribe(event => {
 });
 
 const getBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  return ""; // default to relative in development
+  const url = import.meta.env.VITE_API_URL;
+  if (!url) return "";
+  // Remove trailing slash if present
+  return url.replace(/\/$/, "");
 };
 
 const trpcClient = trpc.createClient({
