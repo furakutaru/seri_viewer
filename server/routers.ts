@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { importCatalogAndMeasurements } from "./import-data";
-import { getAllHorses, getAllHorsesWithStats, getHorseById, getUserCheck, saveUserCheck, getPopularityStats, getAllSales } from "./db";
+import { getAllHorses, getAllHorsesForUser, getHorseById, getUserCheck, saveUserCheck, getPopularityStats, getAllSales } from "./db";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -24,8 +24,8 @@ export const appRouter = router({
     getAll: publicProcedure.query(async () => {
       return await getAllHorses();
     }),
-    getAllWithStats: publicProcedure.query(async () => {
-      return await getAllHorsesWithStats();
+    getAllWithStats: protectedProcedure.query(async ({ ctx }) => {
+      return await getAllHorsesForUser(ctx.user.id);
     }),
     getById: publicProcedure
       .input(z.number())

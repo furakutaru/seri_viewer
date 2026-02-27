@@ -5,32 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
-
-// Helper function to convert relative URLs to absolute URLs
-function getAbsoluteUrl(relativeUrl: string | null | undefined, catalogUrl: string | null | undefined): string | null {
-  if (!relativeUrl) return null;
-  if (!catalogUrl) return relativeUrl; // Fallback if no catalog URL
-
-  // If already absolute, return as is
-  if (relativeUrl.startsWith('http')) return relativeUrl;
-
-  try {
-    // Get the base URL from catalog URL
-    const url = new URL(catalogUrl);
-    const baseUrl = url.origin + url.pathname.substring(0, url.pathname.lastIndexOf('/') + 1);
-
-    // Handle relative paths
-    if (relativeUrl.startsWith('/')) {
-      return url.origin + relativeUrl;
-    }
-
-    // Handle relative paths like ../img/photo.png or pic/20250801-01-0001-1.jpg
-    return new URL(relativeUrl, baseUrl).href;
-  } catch (e) {
-    console.error('Failed to resolve URL:', e);
-    return relativeUrl;
-  }
-}
+import { getAbsoluteUrl } from '@/lib/utils';
 
 export default function HorseDetail() {
   const [location, setLocation] = useLocation();
@@ -133,13 +108,21 @@ export default function HorseDetail() {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">上場番号 {horse.lotNumber}</h1>
             <p className="text-gray-600">馬の詳細情報 {(horse as any).sale?.saleName ? `(${(horse as any).sale.saleName})` : ''}</p>
           </div>
-          <Button
-            onClick={() => setLocation('/horses')}
-            variant="outline"
-            className="text-gray-700 border-gray-300 hover:bg-gray-50"
-          >
-            一覧に戻る
-          </Button>
+          <div className="flex gap-4">
+            <Button
+              onClick={() => setLocation('/my-page')}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+            >
+              マイページ (評価一覧)
+            </Button>
+            <Button
+              onClick={() => setLocation('/horses')}
+              variant="outline"
+              className="text-gray-700 border-gray-300 hover:bg-gray-50 font-bold"
+            >
+              一覧に戻る
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -176,91 +159,110 @@ export default function HorseDetail() {
               )}
             </Card>
 
-            {/* 基本情報 */}
+            {/* 基本情報 & 測尺 */}
             <Card className="p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">基本情報</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                <div>
-                  <p className="text-sm text-gray-600 font-semibold mb-1">性別</p>
-                  <p className="text-lg text-gray-900">{horse.sex || '-'}</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">基本情報 / 測尺</h2>
+              <div className="space-y-8">
+                {/* 性別・毛色・年齢 */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  <div>
+                    <p className="text-sm text-gray-500 font-bold mb-1">性別</p>
+                    <p className="text-xl text-gray-900 font-black">{horse.sex || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-bold mb-1">毛色</p>
+                    <p className="text-xl text-gray-900 font-black">{horse.color || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-bold mb-1">生年月日</p>
+                    <p className="text-xl text-gray-900 font-black">
+                      {horse.birthDate
+                        ? new Date(horse.birthDate).toLocaleDateString('ja-JP')
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-bold mb-1">年齢</p>
+                    <p className="text-xl text-gray-900 font-black">
+                      {horse.birthDate
+                        ? `${new Date().getFullYear() - new Date(horse.birthDate).getFullYear()}歳`
+                        : '-'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600 font-semibold mb-1">毛色</p>
-                  <p className="text-lg text-gray-900">{horse.color || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 font-semibold mb-1">生年月日</p>
-                  <p className="text-lg text-gray-900">
-                    {horse.birthDate
-                      ? new Date(horse.birthDate).toLocaleDateString('ja-JP')
-                      : '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 font-semibold mb-1">年齢</p>
-                  <p className="text-lg text-gray-900">
-                    {horse.birthDate
-                      ? new Date().getFullYear() - new Date(horse.birthDate).getFullYear()
-                      : '-'}
-                    歳
-                  </p>
+
+                {/* 測尺データ */}
+                <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-100">
+                  <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                    <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">体高</p>
+                    <p className="text-2xl font-black text-blue-700">
+                      {horse.height ? `${horse.height}` : '-'}
+                      <span className="text-xs font-normal ml-0.5">cm</span>
+                    </p>
+                  </div>
+                  <div className="bg-green-50/50 p-3 rounded-lg border border-green-100">
+                    <p className="text-[10px] text-green-600 font-bold uppercase mb-1">胸囲</p>
+                    <p className="text-2xl font-black text-green-700">
+                      {horse.girth ? `${horse.girth}` : '-'}
+                      <span className="text-xs font-normal ml-0.5">cm</span>
+                    </p>
+                  </div>
+                  <div className="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                    <p className="text-[10px] text-purple-600 font-bold uppercase mb-1">管囲</p>
+                    <p className="text-2xl font-black text-purple-700">
+                      {horse.cannon ? `${horse.cannon}` : '-'}
+                      <span className="text-xs font-normal ml-0.5">cm</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </Card>
 
-            {/* 血統情報 */}
+            {/* 血統情報 & PDF */}
             <Card className="p-6 shadow-lg">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">血統</h2>
+                <h2 className="text-2xl font-bold text-gray-900">血統情報</h2>
                 {pedigreePdfUrl && (
                   <a
                     href={pedigreePdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm"
+                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                   >
-                    <span>📄</span>
-                    <span>血統書PDFを表示</span>
+                    PDFを別タブで開く ↗
                   </a>
                 )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
-                <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                  <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-2">Sire / 父</p>
-                  <p className="text-xl text-gray-900 font-bold">{horse.sireName || '-'}</p>
-                </div>
-                <div className="p-4 bg-pink-50/50 rounded-lg border border-pink-100">
-                  <p className="text-xs text-pink-600 font-bold uppercase tracking-wider mb-2">Dam / 母</p>
-                  <p className="text-xl text-gray-900 font-bold">{horse.damName || '-'}</p>
-                </div>
-              </div>
-            </Card>
 
-            {/* 測尺データ */}
-            <Card className="p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">測尺データ</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm">
-                  <p className="text-sm text-gray-600 font-semibold mb-2">体高</p>
-                  <p className="text-3xl font-black text-blue-700">
-                    {horse.height ? `${horse.height}` : '-'}
-                    <span className="text-sm font-normal ml-1">cm</span>
-                  </p>
+              <div className="space-y-6">
+                {/* 父・母の名前 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-1">Sire / 父</p>
+                    <p className="text-xl text-gray-900 font-black">{horse.sireName || '-'}</p>
+                  </div>
+                  <div className="p-4 bg-pink-50/50 rounded-lg border border-pink-100">
+                    <p className="text-[10px] text-pink-600 font-bold uppercase tracking-wider mb-1">Dam / 母</p>
+                    <p className="text-xl text-gray-900 font-black">{horse.damName || '-'}</p>
+                  </div>
                 </div>
-                <div className="bg-green-50 p-4 rounded-xl border border-green-100 shadow-sm">
-                  <p className="text-sm text-gray-600 font-semibold mb-2">胸囲</p>
-                  <p className="text-3xl font-black text-green-700">
-                    {horse.girth ? `${horse.girth}` : '-'}
-                    <span className="text-sm font-normal ml-1">cm</span>
-                  </p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 shadow-sm">
-                  <p className="text-sm text-gray-600 font-semibold mb-2">管囲</p>
-                  <p className="text-3xl font-black text-purple-700">
-                    {horse.cannon ? `${horse.cannon}` : '-'}
-                    <span className="text-sm font-normal ml-1">cm</span>
-                  </p>
-                </div>
+
+                {/* PDFの埋め込み */}
+                {pedigreePdfUrl ? (
+                  <div className="mt-4 border rounded-xl overflow-hidden shadow-inner bg-gray-50 h-[800px]">
+                    <iframe
+                      src={`${pedigreePdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                      className="w-full h-full border-none"
+                      title="血統書PDF"
+                    >
+                      PDFを表示できません。
+                    </iframe>
+                  </div>
+                ) : (
+                  <div className="h-40 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 text-sm border border-dashed">
+                    血統書PDFがありません
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -301,8 +303,8 @@ export default function HorseDetail() {
                       key={mark}
                       onClick={() => setEvaluation(evaluation === mark ? null : mark)}
                       className={`flex-1 py-3 px-2 rounded-lg font-bold text-xl transition-all shadow-sm ${evaluation === mark
-                          ? 'bg-blue-600 text-white scale-105 ring-2 ring-blue-300'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-blue-600 text-white scale-105 ring-2 ring-blue-300'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
                       {mark}
@@ -374,14 +376,14 @@ export default function HorseDetail() {
                             className={`${item.color} h-2 rounded-full transition-all duration-500`}
                             style={{
                               width: `${(popularityStats.countExcellent +
-                                  popularityStats.countGood +
-                                  popularityStats.countFair) > 0
-                                  ? (item.count /
-                                    (popularityStats.countExcellent +
-                                      popularityStats.countGood +
-                                      popularityStats.countFair)) *
-                                  100
-                                  : 0
+                                popularityStats.countGood +
+                                popularityStats.countFair) > 0
+                                ? (item.count /
+                                  (popularityStats.countExcellent +
+                                    popularityStats.countGood +
+                                    popularityStats.countFair)) *
+                                100
+                                : 0
                                 }%`,
                             }}
                           />

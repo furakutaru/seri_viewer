@@ -5,8 +5,11 @@ import { execSync } from 'child_process';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
-import { horses } from '../drizzle/schema';
+import iconv from 'iconv-lite';
+import jschardet from 'jschardet';
+import { horses, sales } from '../drizzle/schema';
 import { getDb } from './db';
+import { eq } from 'drizzle-orm';
 
 const CACHE_DIR = path.join(process.cwd(), '.cache');
 
@@ -23,7 +26,7 @@ function getCacheKey(url: string): string {
 }
 
 /**
- * Fetch and cache HTML
+ * Fetch and cache HTML with encoding support
  */
 async function fetchAndCacheHtml(url: string): Promise<string> {
   const cacheKey = getCacheKey(url);
@@ -42,13 +45,25 @@ async function fetchAndCacheHtml(url: string): Promise<string> {
     throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
   }
 
-  const html = await response.text();
+  // Get as buffer to handle multiple encodings
+  const buffer = await response.arrayBuffer();
+  const uint8Array = new Uint8Array(buffer);
 
-  // Save to cache
-  fs.writeFileSync(cachePath, html, 'utf-8');
+  // Detect encoding
+  const detected = jschardet.detect(Buffer.from(uint8Array));
+  const encoding = detected.encoding || 'utf-8';
+
+  console.log(`Detected encoding: ${encoding} for ${url}`);
+
+  // Decode using iconv-lite
+  // HBA is usually Shift-JIS (CP932)
+  const decodedHtml = iconv.decode(Buffer.from(uint8Array), encoding === 'ascii' ? 'utf-8' : encoding);
+
+  // Save as UTF-8 in cache for easier future use
+  fs.writeFileSync(cachePath, decodedHtml, 'utf-8');
   console.log(`✓ Cached HTML to ${cachePath}`);
 
-  return html;
+  return decodedHtml;
 }
 
 /**
@@ -127,20 +142,48 @@ export async function parseCatalog(catalogUrl: string) {
         }
       }
 
+      const rawSex = cleanText($(cells[4]).text());
+      let sex: "牡" | "牝" | "セン" | null = null;
+      if (rawSex.includes("牡")) sex = "牡";
+      else if (rawSex.includes("牝")) sex = "牝";
+      else if (rawSex.includes("セ")) sex = "セン";
+
+      // 画像とPDFのURLをより確実に取得
+      const photoCell = $(cells[1]);
+      const photoLink = photoCell.find('a[data-lightbox]').attr('href') || photoCell.find('a').attr('href');
+      const photoImg = photoCell.find('img').attr('src');
+
+      // data-titleの中にある実際の画像URLを探す（HBAのLightbox構成に対応）
+      let highResPhoto = null;
+      const dataTitle = photoCell.find('a[data-lightbox]').attr('data-title');
+      if (dataTitle) {
+        try {
+          const title$ = cheerio.load(dataTitle);
+          const firstImg = title$('img').first().attr('src');
+          if (firstImg) highResPhoto = firstImg.split('?')[0];
+        } catch (e) { }
+      }
+
+      const photoUrl = (highResPhoto || photoLink || photoImg || "").split('?')[0] || null;
+      const pedigreePdfUrl = ($(cells[0]).find('a').attr('href') || "").split('?')[0] || null;
+
+      if (lotNumber <= 3) {
+        console.log(`[Import Debug] Lot ${lotNumber}: photo=${photoUrl}, pdf=${pedigreePdfUrl}`);
+      }
+
       horseList.push({
         lotNumber,
-        horseName: `No.${lotNumber}`,
-        sex: cleanText($(cells[4]).text()),
+        sex,
         color: cleanText($(cells[5]).text()),
         birthDate: cleanText($(cells[6]).text()) || null,
         sireName,
         damName,
         consignor: cleanText($(cells[10]).text()),
         breeder: cleanText($(cells[11]).text()),
-        priceEstimate: parseInt(cleanText($(cells[14]).text()).replace(/[^0-9]/g, '')) || null,
-        photoUrl: $(cells[1]).find('img').attr('src') || null,
-        videoUrl: $(cells[2]).find('a').attr('href') || null,
-        pedigreePdfUrl: $(cells[0]).find('a').attr('href') || null,
+        priceEstimate: parseInt(cleanText($(cells[14]).text()).replace(/[^0-9]/g, "")) || null,
+        photoUrl,
+        videoUrl: $(cells[2]).find("a").attr("href") || null,
+        pedigreePdfUrl,
       });
     });
 
@@ -255,7 +298,21 @@ export async function importCatalogAndMeasurements(
   pdfUrls: string[]
 ) {
   try {
-    console.log('Starting data import...');
+    // Step 0: セリ情報の更新 (catalogUrlの同期)
+    const db = await getDb();
+    if (!db) {
+      throw new Error('Database connection not available');
+    }
+
+    console.log(`\n[Step 0] Syncing catalog URL and cleaning up existing data for saleId: ${saleId}...`);
+
+    // catalogUrlを同期（詳細画面でのURL解決に使用）
+    await db.update(sales)
+      .set({ catalogUrl, updatedAt: new Date() })
+      .where(eq(sales.id, saleId));
+
+    // 既存のデータを削除
+    await db.delete(horses).where(eq(horses.saleId, saleId));
 
     // Step 1: Webカタログを解析
     console.log('\n[Step 1] Parsing web catalog...');
@@ -318,7 +375,6 @@ export async function importCatalogAndMeasurements(
 
     // Step 4: データベースに保存（バッチ挿入）
     console.log('\n[Step 4] Saving to database...');
-    const db = await getDb();
     if (!db) {
       throw new Error('Database connection not available');
     }
@@ -328,23 +384,29 @@ export async function importCatalogAndMeasurements(
 
     for (let i = 0; i < mergedData.length; i += batchSize) {
       const batch = mergedData.slice(i, i + batchSize);
+      // Remove horseName property as it's not in the schema
+      const cleanedBatch = batch.map(({ horseName, ...rest }: any) => rest);
+
       try {
-        await db.insert(horses).values(batch);
-        insertedCount += batch.length;
+        await db.insert(horses).values(cleanedBatch);
+        insertedCount += cleanedBatch.length;
         console.log(`✓ Inserted batch ${Math.floor(i / batchSize) + 1} (${insertedCount}/${mergedData.length})`);
       } catch (err: any) {
         console.error(`Failed to insert batch starting at ${i}:`, {
           error: err.message,
           code: err.code,
+          detail: err.detail,
         });
         // Try inserting individually to identify problematic records
-        for (const horse of batch) {
+        for (const horse of cleanedBatch) {
           try {
             await db.insert(horses).values(horse);
             insertedCount++;
           } catch (individualErr: any) {
             console.error(`Failed to insert horse ${horse.lotNumber}:`, {
               error: individualErr.message,
+              detail: individualErr.detail,
+              sex: horse.sex,
               birthDate: horse.birthDate,
             });
           }

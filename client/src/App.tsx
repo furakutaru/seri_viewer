@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import AdminImport from "./pages/AdminImport";
 import Horses from "./pages/Horses";
 import HorseDetail from "./pages/HorseDetail";
+import MyPage from "./pages/MyPage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/admin/import"} component={AdminImport} />
       <Route path={"/horses/:id"} component={HorseDetail} />
       <Route path={"/horses"} component={Horses} />
+      <Route path={"/my-page"} component={MyPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -34,7 +36,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
-        // switchable
+      // switchable
       >
         <TooltipProvider>
           <Toaster />

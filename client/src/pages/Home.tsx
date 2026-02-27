@@ -27,18 +27,27 @@ export default function Home() {
           <div className="flex items-center gap-6">
             {isAuthenticated && user ? (
               <div className="flex items-center gap-4">
-                <div className="flex flex-col items-end">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Signed in as</span>
-                  <span className="text-sm font-bold text-slate-700">{user.name}</span>
-                </div>
                 <Button
+                  onClick={() => setLocation('/my-page')}
                   variant="ghost"
-                  size="sm"
-                  onClick={logout}
-                  className="text-slate-500 hover:text-red-600 hover:bg-red-50 font-bold"
+                  className="text-indigo-600 hover:bg-indigo-50 font-bold"
                 >
-                  Logout
+                  My Page
                 </Button>
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Signed in as</span>
+                    <span className="text-sm font-bold text-slate-700">{user.name}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={logout}
+                    className="text-slate-500 hover:text-red-600 hover:bg-red-50 font-bold"
+                  >
+                    Logout
+                  </Button>
+                </div>
               </div>
             ) : (
               <Button
@@ -146,6 +155,21 @@ export default function Home() {
                   <div>
                     <div className="font-bold text-slate-800">全上場馬から探す</div>
                     <div className="text-xs text-slate-400 font-medium">血統や詳細条件で検索</div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card
+                className="p-6 border-none shadow-lg shadow-slate-200/50 hover:translate-x-1 transition-transform cursor-pointer group bg-blue-50/30"
+                onClick={() => setLocation('/my-page')}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    ⭐
+                  </div>
+                  <div>
+                    <div className="font-bold text-indigo-900">マイページ</div>
+                    <div className="text-xs text-indigo-400 font-medium tracking-tight">評価した馬・除外馬の管理</div>
                   </div>
                 </div>
               </Card>

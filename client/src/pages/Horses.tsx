@@ -8,13 +8,15 @@ import { useAuth } from '@/_core/hooks/useAuth';
 
 export default function Horses() {
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'lotNumber' | 'birthDate' | 'popularity'>('lotNumber');
+  const [sortBy, setSortBy] = useState<'lotNumber' | 'birthDate' | 'popularity' | 'height' | 'girth' | 'cannon'>('lotNumber');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Fetch all horses with stats
-  const { data: horses, isLoading, error } = trpc.horses.getAllWithStats.useQuery();
+  const { data: horses, isLoading, error } = trpc.horses.getAllWithStats.useQuery(undefined, {
+    enabled: isAuthenticated
+  });
 
   // Filter and sort horses
   const filteredHorses = useMemo(() => {
@@ -23,12 +25,14 @@ export default function Horses() {
     let filtered = horses.filter((horse: any) => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        horse.lotNumber.toString().includes(searchLower) ||
-        horse.sireName?.toLowerCase().includes(searchLower) ||
-        horse.damName?.toLowerCase().includes(searchLower) ||
-        horse.sex?.toLowerCase().includes(searchLower) ||
-        horse.color?.toLowerCase().includes(searchLower) ||
-        horse.sale?.saleName?.toLowerCase().includes(searchLower)
+        (!horse.userCheck?.isEliminated) && (
+          horse.lotNumber.toString().includes(searchLower) ||
+          horse.sireName?.toLowerCase().includes(searchLower) ||
+          horse.damName?.toLowerCase().includes(searchLower) ||
+          horse.sex?.toLowerCase().includes(searchLower) ||
+          horse.color?.toLowerCase().includes(searchLower) ||
+          horse.userCheck?.memo?.toLowerCase().includes(searchLower)
+        )
       );
     });
 
@@ -43,6 +47,9 @@ export default function Horses() {
       } else if (sortBy === 'birthDate') {
         aVal = aVal ? new Date(aVal).getTime() : 0;
         bVal = bVal ? new Date(bVal).getTime() : 0;
+      } else if (['height', 'girth', 'cannon'].includes(sortBy)) {
+        aVal = aVal ? parseFloat(aVal) : 0;
+        bVal = bVal ? parseFloat(bVal) : 0;
       }
 
       if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
@@ -53,7 +60,7 @@ export default function Horses() {
     return filtered;
   }, [horses, searchTerm, sortBy, sortOrder]);
 
-  const handleSort = (column: 'lotNumber' | 'birthDate' | 'popularity') => {
+  const handleSort = (column: 'lotNumber' | 'birthDate' | 'popularity' | 'height' | 'girth' | 'cannon') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -61,6 +68,17 @@ export default function Horses() {
       setSortOrder('asc');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500 font-bold">認証状態を確認中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -86,13 +104,21 @@ export default function Horses() {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">上場馬一覧</h1>
             <p className="text-gray-600">登録されている馬の一覧を表示しています</p>
           </div>
-          <Button
-            onClick={() => setLocation('/')}
-            variant="outline"
-            className="text-gray-700 border-gray-300 hover:bg-gray-50"
-          >
-            ホームに戻る
-          </Button>
+          <div className="flex gap-4">
+            <Button
+              onClick={() => setLocation('/my-page')}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+            >
+              マイページ (評価一覧)
+            </Button>
+            <Button
+              onClick={() => setLocation('/')}
+              variant="outline"
+              className="text-gray-700 border-gray-300 hover:bg-gray-50 font-bold"
+            >
+              ホームに戻る
+            </Button>
+          </div>
         </div>
 
         {/* 検索・フィルター */}
@@ -157,13 +183,45 @@ export default function Horses() {
                       </button>
                     </th>
                     <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">血統 (父 / 母)</th>
-                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">測尺 (体/胸/管)</th>
+                    <th className="px-2 py-4">
+                      <button
+                        onClick={() => handleSort('height')}
+                        className="font-bold text-gray-600 hover:text-gray-900 flex items-center gap-1 uppercase text-[10px] tracking-tighter"
+                      >
+                        体高
+                        {sortBy === 'height' && (
+                          <span className="text-blue-600 font-black">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-2 py-4">
+                      <button
+                        onClick={() => handleSort('girth')}
+                        className="font-bold text-gray-600 hover:text-gray-900 flex items-center gap-1 uppercase text-[10px] tracking-tighter"
+                      >
+                        胸囲
+                        {sortBy === 'girth' && (
+                          <span className="text-blue-600 font-black">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-2 py-4">
+                      <button
+                        onClick={() => handleSort('cannon')}
+                        className="font-bold text-gray-600 hover:text-gray-900 flex items-center gap-1 uppercase text-[10px] tracking-tighter"
+                      >
+                        管囲
+                        {sortBy === 'cannon' && (
+                          <span className="text-blue-600 font-black">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </button>
+                    </th>
                     <th className="px-6 py-4">
                       <button
                         onClick={() => handleSort('popularity')}
                         className="font-bold text-gray-600 hover:text-gray-900 flex items-center gap-1 uppercase text-xs tracking-wider"
                       >
-                        人気指数
+                        人気
                         {sortBy === 'popularity' && (
                           <span className="text-blue-600 font-black">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                         )}
@@ -181,39 +239,42 @@ export default function Horses() {
                         className="hover:bg-blue-50/50 transition-colors group"
                       >
                         <td className="px-6 py-4">
-                          <span className="text-xl font-black text-gray-900">{horse.lotNumber}</span>
-                          {horse.sale?.saleName && (
-                            <div className="text-[10px] text-gray-400 font-bold truncate max-w-[120px]">
-                              {horse.sale.saleName}
-                            </div>
-                          )}
+                          <span className="text-2xl font-black text-gray-900">{horse.lotNumber}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-bold text-gray-900">{horse.sex || '-'}</div>
-                          <div className="text-xs text-gray-500">{horse.color || '-'}</div>
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-black w-fit ${horse.sex === '牡' ? 'bg-blue-100 text-blue-800' :
+                              horse.sex === '牝' ? 'bg-pink-100 text-pink-800' :
+                                horse.sex === 'セン' ? 'bg-green-100 text-green-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }`}>
+                              {horse.sex || '-'}
+                            </span>
+                            <div className="text-xs text-gray-500 font-medium ml-1">{horse.color || '-'}</div>
+                          </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm text-gray-900 font-medium">
                             {horse.birthDate
                               ? new Date(horse.birthDate).toLocaleDateString('ja-JP')
                               : '-'}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-[10px] text-gray-400 font-bold">
                             {horse.birthDate ? `${new Date().getFullYear() - new Date(horse.birthDate).getFullYear()}歳` : ''}
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-bold text-blue-900">{horse.sireName || '-'}</div>
-                          <div className="text-sm text-gray-600 italic">× {horse.damName || '-'}</div>
+                          <div className="text-xs text-gray-600 italic">× {horse.damName || '-'}</div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2 text-xs font-bold">
-                            <span className="text-blue-600">{horse.height || '-'}</span>
-                            <span className="text-gray-300">/</span>
-                            <span className="text-green-600">{horse.girth || '-'}</span>
-                            <span className="text-gray-300">/</span>
-                            <span className="text-purple-600">{horse.cannon || '-'}</span>
-                          </div>
+                        <td className="px-2 py-4">
+                          <span className="text-sm font-black text-blue-700">{horse.height || '-'}</span>
+                        </td>
+                        <td className="px-2 py-4">
+                          <span className="text-sm font-black text-green-700">{horse.girth || '-'}</span>
+                        </td>
+                        <td className="px-2 py-4">
+                          <span className="text-sm font-black text-purple-700">{horse.cannon || '-'}</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1">

@@ -124,12 +124,9 @@ export async function getAllSales() {
   }
 }
 
-export async function getAllHorsesWithStats() {
+export async function getAllHorsesForUser(userId: number) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get horses with stats: database not available");
-    return [];
-  }
+  if (!db) return [];
 
   try {
     const allHorses = await db
@@ -144,11 +141,17 @@ export async function getAllHorsesWithStats() {
 
     return allHorses.map(({ horse, sale }) => {
       const checks = allChecks.filter(c => c.horseId === horse.id);
-      const countExcellent = checks.filter(c => c.evaluation === '◎').length;
-      const countGood = checks.filter(c => c.evaluation === '○').length;
-      const countFair = checks.filter(c => c.evaluation === '△').length;
-      const total = checks.length;
+
+      // Calculate global stats (excluding eliminated ones)
+      const validChecks = checks.filter(c => !c.isEliminated);
+      const countExcellent = validChecks.filter(c => c.evaluation === '◎').length;
+      const countGood = validChecks.filter(c => c.evaluation === '○').length;
+      const countFair = validChecks.filter(c => c.evaluation === '△').length;
+      const total = validChecks.length;
       const score = countExcellent * 3 + countGood * 2 + countFair * 1;
+
+      // Current user's specific check
+      const myCheck = checks.find(c => c.userId === userId);
 
       return {
         ...horse,
@@ -159,11 +162,16 @@ export async function getAllHorsesWithStats() {
           countFair,
           total,
           score
-        }
+        },
+        userCheck: myCheck ? {
+          evaluation: myCheck.evaluation,
+          memo: myCheck.memo,
+          isEliminated: myCheck.isEliminated
+        } : null
       };
     });
   } catch (error) {
-    console.error("[Database] Failed to get horses with stats:", error);
+    console.error("[Database] Failed to get horses for user:", error);
     return [];
   }
 }
@@ -278,10 +286,11 @@ export async function getPopularityStats(horseId: number) {
       .from(userChecks)
       .where(eq(userChecks.horseId, horseId));
 
-    const countExcellent = result.filter((r) => r.evaluation === '◎').length;
-    const countGood = result.filter((r) => r.evaluation === '○').length;
-    const countFair = result.filter((r) => r.evaluation === '△').length;
-    const total = result.length;
+    const validChecks = result.filter((r) => !r.isEliminated);
+    const countExcellent = validChecks.filter((r) => r.evaluation === '◎').length;
+    const countGood = validChecks.filter((r) => r.evaluation === '○').length;
+    const countFair = validChecks.filter((r) => r.evaluation === '△').length;
+    const total = validChecks.length;
 
     // Calculate score: ◎=3, ○=2, △=1
     const score = countExcellent * 3 + countGood * 2 + countFair * 1;
