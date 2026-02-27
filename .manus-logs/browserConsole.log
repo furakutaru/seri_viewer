@@ -209,3 +209,53 @@
 [2026-02-27T23:25:30.907Z] {"timestamp":1772234729817,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
 [2026-02-27T23:25:30.907Z] {"timestamp":1772234729817,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
 [2026-02-27T23:25:38.943Z] {"timestamp":1772234735924,"level":"LOG","args":["[vite] server connection lost. Polling for restart..."],"stack":null}
+[2026-02-27T23:39:39.145Z] {"timestamp":1772235577103,"level":"DEBUG","args":["[Manus] Debug collector initialized (no rrweb, UI events only)"],"stack":null}
+[2026-02-27T23:39:39.145Z] {"timestamp":1772235577105,"level":"DEBUG","args":["[vite] connected."],"stack":null}
+[2026-02-27T23:39:39.145Z] {"timestamp":1772235577476,"level":"INFO","args":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"],"stack":null}
+[2026-02-27T23:40:07.633Z] {"timestamp":1772235606135,"level":"WARN","args":["Select is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component."],"stack":null}
+[2026-02-27T23:40:13.672Z] {"timestamp":1772235613231,"level":"WARN","args":["Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."],"stack":null}
+[2026-02-27T23:42:06.208Z] {"timestamp":1772235725389,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:42:06.208Z] {"timestamp":1772235725389,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:42:16.220Z] {"timestamp":1772235735836,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:42:16.220Z] {"timestamp":1772235735837,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:42:28.370Z] {"timestamp":1772235746770,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:42:28.370Z] {"timestamp":1772235746770,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:42:28.370Z] {"timestamp":1772235746806,"level":"ERROR","args":["[API Query Error]",{"type":"Error","message":"[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received undefined\"\n  }\n]","stack":"TRPCClientError2@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-GIAR3RVC.js?v=46190fb8:2011:5\nfrom@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-GIAR3RVC.js?v=46190fb8:2029:44\nhttpBatchLink/</</</<@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-GIAR3RVC.js?v=46190fb8:2423:44\n"}],"stack":"console[method]@http://localhost:3000/__manus__/debug-collector.js:391:37\n@http://localhost:3000/src/main.tsx?v=9ds1PAHQ7D4JleLn48wS9:37:13\nnotify/</<@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:2645:17\nnotify/<@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:2644:22\nbatch@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:606:18\nnotify@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:2643:19\n#dispatch/<@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:1226:19\nbatch@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:606:18\n#dispatch@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:1222:19\nfetch@http://localhost:3000/@fs/Users/yum.ishii/seri_viewer/node_modules/.vite/deps/chunk-NCYC6RU2.js?v=46190fb8:1137:21\n"}
+[2026-02-27T23:42:32.371Z] {"timestamp":1772235752307,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:42:32.371Z] {"timestamp":1772235752307,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:42:40.391Z] {"timestamp":1772235760158,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:42:40.391Z] {"timestamp":1772235760159,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:42:56.511Z] {"timestamp":1772235774607,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:42:56.511Z] {"timestamp":1772235774607,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:43:04.547Z] {"timestamp":1772235782870,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:43:04.547Z] {"timestamp":1772235782870,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:43:08.597Z] {"timestamp":1772235787541,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:43:08.597Z] {"timestamp":1772235787541,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:43:14.690Z] {"timestamp":1772235792894,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:43:14.690Z] {"timestamp":1772235792894,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:43:20.725Z] {"timestamp":1772235800479,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:43:20.725Z] {"timestamp":1772235800479,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:43:28.745Z] {"timestamp":1772235806837,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:43:28.745Z] {"timestamp":1772235806838,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:43:54.799Z] {"timestamp":1772235833809,"level":"ERROR","args":["[vite]",{"type":"Error","message":"error loading dynamically imported module: http://localhost:3000/src/pages/MyPage.tsx?t=1772235833623","stack":""}],"stack":"console[method]@http://localhost:3000/__manus__/debug-collector.js:391:37\nerror@http://localhost:3000/@vite/client:809:26\nwarnFailedUpdate@http://localhost:3000/@vite/client:180:78\nfetchUpdate@http://localhost:3000/@vite/client:212:10\n"}
+[2026-02-27T23:43:54.799Z] {"timestamp":1772235833811,"level":"ERROR","args":["[vite]","Failed to reload /src/pages/MyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)"],"stack":"console[method]@http://localhost:3000/__manus__/debug-collector.js:391:37\nerror@http://localhost:3000/@vite/client:809:26\nwarnFailedUpdate@http://localhost:3000/@vite/client:181:15\nfetchUpdate@http://localhost:3000/@vite/client:212:10\n"}
+[2026-02-27T23:43:54.799Z] {"timestamp":1772235833811,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:43:54.799Z] {"timestamp":1772235833811,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:44:00.839Z] {"timestamp":1772235839680,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:44:00.839Z] {"timestamp":1772235839680,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:49:33.724Z] {"timestamp":1772236172354,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:49:33.724Z] {"timestamp":1772236172354,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:49:37.743Z] {"timestamp":1772236176403,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:49:37.743Z] {"timestamp":1772236176404,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:53:02.496Z] {"timestamp":1772236381768,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:53:02.496Z] {"timestamp":1772236381768,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:53:08.481Z] {"timestamp":1772236386738,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:53:08.481Z] {"timestamp":1772236386738,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:53:08.481Z] {"timestamp":1772236386815,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:53:08.481Z] {"timestamp":1772236386815,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:53:14.561Z] {"timestamp":1772236393126,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:53:14.561Z] {"timestamp":1772236393126,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:53:20.791Z] {"timestamp":1772236400016,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:53:20.791Z] {"timestamp":1772236400016,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-27T23:53:20.791Z] {"timestamp":1772236400071,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
+[2026-02-27T23:53:20.791Z] {"timestamp":1772236400071,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}

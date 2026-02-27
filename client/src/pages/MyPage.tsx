@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
@@ -26,7 +27,7 @@ export default function MyPage() {
     const [newItem, setNewItem] = useState({
         itemName: '',
         itemType: 'boolean' as 'boolean' | 'numeric',
-        score: 10,
+        score: 1,
         criteria: ''
     });
     const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
@@ -87,23 +88,8 @@ export default function MyPage() {
         return horses.filter((h: any) => h.userCheck?.isEliminated);
     }, [horses]);
 
-    // Cache checklist scores for all evaluated horses
-    const checklistScores = useMemo(() => {
-        const scores: Record<number, number> = {};
-        if (horses) {
-            horses.forEach((horse: any) => {
-                if (horse.userCheck?.id) {
-                    // For now, return 0 as placeholder
-                    // In a real implementation, you might want to add a batch API call
-                    scores[horse.id] = 0;
-                }
-            });
-        }
-        return scores;
-    }, [horses]);
-
-    const calculateChecklistScore = (horseId: number) => {
-        return checklistScores[horseId] || 0;
+    const calculateChecklistScore = (horse: any) => {
+        return horse.userCheck?.checklistScore || 0;
     };
 
     const handleRestore = async (horseId: number, evaluation: any, memo: string) => {
@@ -177,7 +163,8 @@ export default function MyPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+        <TooltipProvider>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
             <div className="max-w-7xl mx-auto">
                 {/* ヘッダー */}
                 <div className="flex justify-between items-center mb-8">
@@ -262,9 +249,16 @@ export default function MyPage() {
                                                         <div className="text-xs text-gray-500">× {horse.damName}</div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-bold">
-                                                            {calculateChecklistScore(horse.id)}点
-                                                        </Badge>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-bold cursor-help">
+                                                                    {calculateChecklistScore(horse)}点
+                                                                </Badge>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="text-sm">内訳は馬の詳細ページで確認できます</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="text-sm text-gray-600 italic bg-amber-50/50 p-2 rounded line-clamp-2">
@@ -324,8 +318,25 @@ export default function MyPage() {
                                                     }`}>
                                                     {horse.sex} / {horse.color}
                                                 </div>
-                                                <h3 className="text-xl font-black text-blue-900 leading-tight group-hover:text-blue-600 transition-colors uppercase tracking-tight">{horse.sireName}</h3>
-                                                <p className="text-sm font-medium text-gray-500 mt-0.5 italic">× {horse.damName}</p>
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex-1">
+                                                        <h3 className="text-xl font-black text-blue-900 leading-tight group-hover:text-blue-600 transition-colors uppercase tracking-tight">{horse.sireName}</h3>
+                                                        <p className="text-sm font-medium text-gray-500 mt-0.5 italic">× {horse.damName}</p>
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div className="cursor-help">
+                                                                    <div className="text-[10px] text-purple-600 font-black uppercase tracking-widest mb-1 text-right">チェック</div>
+                                                                    <div className="font-black text-lg text-purple-700 text-right min-w-[3rem]">{calculateChecklistScore(horse)}点</div>
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="text-sm">内訳は馬の詳細ページで確認できます</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             <div className="grid grid-cols-3 gap-3 mb-4 bg-slate-50/80 p-4 rounded-xl text-center border border-slate-100">
@@ -341,11 +352,6 @@ export default function MyPage() {
                                                     <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">管囲</div>
                                                     <div className="font-black text-base text-purple-700">{horse.cannon || '-'}</div>
                                                 </div>
-                                            </div>
-
-                                            <div className="bg-purple-50/80 p-3 rounded-xl text-center border border-purple-100 mb-4">
-                                                <div className="text-[10px] text-purple-600 font-black uppercase tracking-widest mb-1">チェックリスト</div>
-                                                <div className="font-black text-lg text-purple-700">{calculateChecklistScore(horse.id)}点</div>
                                             </div>
 
                                             {horse.userCheck?.memo && (
@@ -458,7 +464,7 @@ export default function MyPage() {
                                                         id="itemName"
                                                         value={newItem.itemName}
                                                         onChange={(e) => setNewItem({ ...newItem, itemName: e.target.value })}
-                                                        placeholder="例：胸囲180以上"
+                                                        placeholder="例：胸囲170以上"
                                                     />
                                                 </div>
                                                 <div>
@@ -613,5 +619,6 @@ export default function MyPage() {
                 </Tabs>
             </div>
         </div>
+        </TooltipProvider>
     );
 }
