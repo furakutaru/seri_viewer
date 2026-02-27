@@ -18,6 +18,10 @@ export default function HorseDetail() {
   const [memo, setMemo] = useState('');
   const [isEliminated, setIsEliminated] = useState(false);
 
+  const navigateToHorse = (horseId: number) => {
+    setLocation(`/horses/${horseId}`);
+  };
+
   // Checklist state management
   const [checklistState, setChecklistState] = useState<Record<number, boolean>>({});
   const [numericValues, setNumericValues] = useState<Record<number, number>>({});
@@ -74,32 +78,30 @@ export default function HorseDetail() {
 
   // Handle checklist changes
   const handleChecklistChange = (itemId: number, isChecked: boolean) => {
-    const newChecklistState = { ...checklistState, [itemId]: isChecked };
-    setChecklistState(newChecklistState);
-    saveChecklistResultsData(newChecklistState, numericValues);
+    setChecklistState(prev => ({ ...prev, [itemId]: isChecked }));
+    saveChecklistResultsData();
   };
 
   const handleNumericChange = (itemId: number, value: number) => {
-    const newNumericValues = { ...numericValues, [itemId]: value };
-    setNumericValues(newNumericValues);
-    saveChecklistResultsData(checklistState, newNumericValues);
+    setNumericValues(prev => ({ ...prev, [itemId]: value }));
+    saveChecklistResultsData();
   };
 
-  const saveChecklistResultsData = (currentChecklistState = checklistState, currentNumericValues = numericValues) => {
+  const saveChecklistResultsData = () => {
     if (!horseId || !checklistItems) return;
 
     const results = checklistItems.map(item => {
       if (item.itemType === 'boolean') {
         return {
           checkItemId: item.id,
-          isChecked: currentChecklistState[item.id] || false,
-          scoreApplied: currentChecklistState[item.id] ? item.score : 0,
+          isChecked: checklistState[item.id] || false,
+          scoreApplied: checklistState[item.id] ? item.score : 0,
         };
       } else {
         return {
           checkItemId: item.id,
-          isChecked: currentNumericValues[item.id] > 0,
-          scoreApplied: currentNumericValues[item.id] || 0,
+          isChecked: numericValues[item.id] > 0,
+          scoreApplied: numericValues[item.id] || 0,
         };
       }
     });
@@ -133,36 +135,47 @@ export default function HorseDetail() {
     });
   };
 
-  // Initialize form when data loads
-  useEffect(() => {
-    if (userCheck) {
-      setEvaluation(userCheck.evaluation);
-      setMemo(userCheck.memo || '');
-      setIsEliminated(userCheck.isEliminated);
-    }
-  }, [userCheck]);
-
-  // Navigation functionality temporarily disabled
-  const navigation = null;
-
-  if (isLoading || !horse) {
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500 font-bold">読み込み中...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+        <div className="max-w-4xl mx-auto">
+          <Card className="p-8 text-center">
+            <p className="text-gray-600 mb-4">ログインが必要です</p>
+            <Button onClick={() => setLocation('/')} className="bg-blue-600 hover:bg-blue-700">
+              ホームに戻る
+            </Button>
+          </Card>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-8">
-        <Card className="p-8 text-center bg-white shadow-lg">
-          <p className="text-red-600 mb-4 font-bold">エラーが発生しました</p>
-          <Button onClick={() => setLocation('/horses')} className="bg-blue-600 hover:bg-blue-700">一覧に戻る</Button>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+        <div className="max-w-4xl mx-auto">
+          <Card className="p-8 text-center">
+            <p className="text-gray-600">データを読み込み中...</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !horse) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+        <div className="max-w-4xl mx-auto">
+          <Card className="p-8 text-center bg-red-50 border border-red-200">
+            <p className="text-red-600 mb-4">馬が見つかりません</p>
+            <Button
+              onClick={() => setLocation('/horses')}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              一覧に戻る
+            </Button>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -299,9 +312,9 @@ export default function HorseDetail() {
                     href={pedigreePdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                   >
-                    血統書PDFを開く ↗
+                    PDFを別タブで開く ↗
                   </a>
                 )}
               </div>
@@ -363,7 +376,7 @@ export default function HorseDetail() {
           {/* サイドバー - 評価パネル */}
           <div className="space-y-6">
             {/* 評価 */}
-            <Card className="p-6 shadow-lg">
+            <Card className="p-6 shadow-lg sticky top-8">
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <span>📝</span>
                 <span>あなたの検討メモ</span>
@@ -440,6 +453,112 @@ export default function HorseDetail() {
                   </div>
                 )}
 
+                {/* 除外 */}
+                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                  <input
+                    type="checkbox"
+                    id="eliminate"
+                    checked={isEliminated}
+                    onChange={(e) => setIsEliminated(e.target.checked)}
+                    className="w-5 h-5 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                  />
+                  <label htmlFor="eliminate" className="text-sm text-red-700 font-bold select-none cursor-pointer">
+                    この馬を検討から除外する
+                  </label>
+                </div>
+
+                {/* 保存ボタン */}
+                <Button
+                  onClick={handleSaveEvaluation}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 text-lg rounded-xl transition-all hover:shadow-lg active:scale-95"
+                >
+                  検討状況を保存
+                </Button>
+                {saveUserCheck.isSuccess && (
+                  <p className="text-center text-sm font-bold text-green-600 animate-pulse">
+                    ✓ 保存しました
+                  </p>
+                )}
+              </div>
+
+              {/* 人気指数 */}
+              {popularityStats && (
+                <div className="mt-8 pt-8 border-t border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span>📊</span>
+                    <span>みんなの評価</span>
+                  </h3>
+                  <div className="space-y-4">
+                    {[
+                      { label: '◎ 評価', count: popularityStats.countExcellent, color: 'bg-green-600', text: 'text-green-600' },
+                      { label: '○ 評価', count: popularityStats.countGood, color: 'bg-blue-600', text: 'text-blue-600' },
+                      { label: '△ 評価', count: popularityStats.countFair, color: 'bg-orange-600', text: 'text-orange-600' },
+                    ].map((item) => (
+                      <div key={item.label}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-bold text-gray-600">{item.label}</span>
+                          <span className={`text-sm font-black ${item.text}`}>{item.count}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div
+                            className={`${item.color} h-2 rounded-full transition-all duration-500`}
+                            style={{
+                              width: `${(popularityStats.countExcellent +
+                                popularityStats.countGood +
+                                popularityStats.countFair) > 0
+                                ? (item.count /
+                                  (popularityStats.countExcellent +
+                                    popularityStats.countGood +
+                                    popularityStats.countFair)) *
+                                100
+                                : 0
+                                }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+                    </h3>
+                    <div className="space-y-3">
+                      {checklistItems.map((item: any) => (
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <div className="flex items-center gap-3 flex-1">
+                            {item.itemType === 'boolean' ? (
+                              <Checkbox
+                                checked={checklistState[item.id] || false}
+                                onCheckedChange={(checked) => handleChecklistChange(item.id, checked as boolean)}
+                                className="w-5 h-5"
+                              />
+                            ) : (
+                              <div className="w-5 h-5 flex items-center justify-center">
+                                <span className="text-xs font-bold text-blue-600">{numericValues[item.id] || 0}</span>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{item.itemName}</div>
+                              <div className="text-xs text-gray-500">+{item.score}点</div>
+                            </div>
+                          </div>
+                          {item.itemType === 'numeric' && (
+                            <input
+                              type="number"
+                              min="0"
+                              max={item.score}
+                              value={numericValues[item.id] || 0}
+                              onChange={(e) => handleNumericChange(item.id, parseInt(e.target.value) || 0)}
+                              className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* 除外ボタン */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <Button
@@ -471,44 +590,6 @@ export default function HorseDetail() {
                 </div>
               </div>
             </Card>
-
-            {/* 人気度統計 */}
-            {popularityStats && popularityStats.total > 0 && (
-              <Card className="p-6 shadow-lg">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">みんなの評価</h2>
-                <div className="space-y-3">
-                  {[
-                    { label: '◎ 評価', count: popularityStats.countExcellent, color: 'bg-green-600', text: 'text-green-600' },
-                    { label: '○ 評価', count: popularityStats.countGood, color: 'bg-blue-600', text: 'text-blue-600' },
-                    { label: '△ 評価', count: popularityStats.countFair, color: 'bg-orange-600', text: 'text-orange-600' },
-                  ].map((item) => (
-                    <div key={item.label}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-bold text-gray-600">{item.label}</span>
-                        <span className={`text-sm font-black ${item.text}`}>{item.count}</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div
-                          className={`${item.color} h-2 rounded-full transition-all duration-500`}
-                          style={{
-                            width: `${(popularityStats.countExcellent +
-                              popularityStats.countGood +
-                              popularityStats.countFair) > 0
-                              ? (item.count /
-                                (popularityStats.countExcellent +
-                                  popularityStats.countGood +
-                                  popularityStats.countFair)) *
-                              100
-                              : 0
-                              }%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
           </div>
         </div>
       </div>

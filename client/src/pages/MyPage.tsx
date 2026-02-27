@@ -4,9 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
+import { Trash2, Edit, Plus, CheckSquare, Square } from 'lucide-react';
 
 export default function MyPage() {
     const [, setLocation] = useLocation();
@@ -14,9 +20,53 @@ export default function MyPage() {
     const [activeTab, setActiveTab] = useState('evaluation');
     const [evalFilter, setEvalFilter] = useState<'ALL' | '◎' | '○' | '△'>('ALL');
 
+    // Checklist states
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<any>(null);
+    const [newItem, setNewItem] = useState({
+        itemName: '',
+        itemType: 'boolean' as 'boolean' | 'numeric',
+        score: 10,
+        criteria: ''
+    });
+    const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+
     // Fetch all horses with user-specific info
     const { data: horses, isLoading, error, refetch } = trpc.horses.getAllWithStats.useQuery(undefined, {
         enabled: isAuthenticated
+    });
+
+    // Fetch sales for checklist selection
+    const { data: sales } = trpc.sales.getAll.useQuery(undefined, {
+        enabled: isAuthenticated
+    });
+
+    // Fetch checklist items
+    const { data: checklistItems, refetch: refetchChecklist } = trpc.horses.checkListItems.getAll.useQuery(
+        { saleId: selectedSaleId || undefined },
+        { enabled: isAuthenticated }
+    );
+
+    // Checklist mutations
+    const createItem = trpc.horses.checkListItems.create.useMutation({
+        onSuccess: () => {
+            refetchChecklist();
+            setIsCreateDialogOpen(false);
+            setNewItem({ itemName: '', itemType: 'boolean', score: 10, criteria: '' });
+        }
+    });
+
+    const updateItem = trpc.horses.checkListItems.update.useMutation({
+        onSuccess: () => {
+            refetchChecklist();
+            setEditingItem(null);
+        }
+    });
+
+    const deleteItem = trpc.horses.checkListItems.delete.useMutation({
+        onSuccess: () => {
+            refetchChecklist();
+        }
     });
 
     const saveCheck = trpc.horses.saveUserCheck.useMutation({
@@ -37,6 +87,25 @@ export default function MyPage() {
         return horses.filter((h: any) => h.userCheck?.isEliminated);
     }, [horses]);
 
+    // Cache checklist scores for all evaluated horses
+    const checklistScores = useMemo(() => {
+        const scores: Record<number, number> = {};
+        if (horses) {
+            horses.forEach((horse: any) => {
+                if (horse.userCheck?.id) {
+                    // For now, return 0 as placeholder
+                    // In a real implementation, you might want to add a batch API call
+                    scores[horse.id] = 0;
+                }
+            });
+        }
+        return scores;
+    }, [horses]);
+
+    const calculateChecklistScore = (horseId: number) => {
+        return checklistScores[horseId] || 0;
+    };
+
     const handleRestore = async (horseId: number, evaluation: any, memo: string) => {
         await saveCheck.mutateAsync({
             horseId,
@@ -44,6 +113,45 @@ export default function MyPage() {
             memo,
             isEliminated: false
         });
+    };
+
+    // Checklist handlers
+    const handleCreateItem = () => {
+        if (!selectedSaleId) return;
+        
+        createItem.mutate({
+            saleId: selectedSaleId,
+            itemName: newItem.itemName,
+            itemType: newItem.itemType,
+            score: newItem.score,
+            criteria: newItem.criteria || null
+        });
+    };
+
+    const handleUpdateItem = () => {
+        if (!editingItem) return;
+        
+        updateItem.mutate({
+            id: editingItem.id,
+            itemName: editingItem.itemName,
+            itemType: editingItem.itemType,
+            score: editingItem.score,
+            criteria: editingItem.criteria || null
+        });
+    };
+
+    const handleDeleteItem = (itemId: number) => {
+        if (confirm('本当に削除しますか？')) {
+            deleteItem.mutate(itemId);
+        }
+    };
+
+    const startEdit = (item: any) => {
+        setEditingItem({ ...item });
+    };
+
+    const cancelEdit = () => {
+        setEditingItem(null);
     };
 
     if (loading || isLoading) return (
@@ -87,9 +195,10 @@ export default function MyPage() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="mb-8 grid grid-cols-3 w-full max-w-2xl mx-auto bg-white/50 backdrop-blur shadow-sm p-1 rounded-xl h-auto">
+                    <TabsList className="mb-8 grid grid-cols-4 w-full max-w-3xl mx-auto bg-white/50 backdrop-blur shadow-sm p-1 rounded-xl h-auto">
                         <TabsTrigger value="evaluation" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">評価リスト</TabsTrigger>
                         <TabsTrigger value="comparison" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">馬体比較ビュー</TabsTrigger>
+                        <TabsTrigger value="checklist" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">チェックリスト管理</TabsTrigger>
                         <TabsTrigger value="eliminated" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">除外管理 ({eliminatedHorses.length})</TabsTrigger>
                     </TabsList>
 
@@ -130,6 +239,7 @@ export default function MyPage() {
                                                 <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">評価</th>
                                                 <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">性別/毛色</th>
                                                 <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">血統</th>
+                                                <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">チェック</th>
                                                 <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider w-1/3">メモ</th>
                                                 <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">詳細</th>
                                             </tr>
@@ -150,6 +260,11 @@ export default function MyPage() {
                                                     <td className="px-6 py-4">
                                                         <div className="font-bold text-blue-900">{horse.sireName}</div>
                                                         <div className="text-xs text-gray-500">× {horse.damName}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-bold">
+                                                            {calculateChecklistScore(horse.id)}点
+                                                        </Badge>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="text-sm text-gray-600 italic bg-amber-50/50 p-2 rounded line-clamp-2">
@@ -228,6 +343,11 @@ export default function MyPage() {
                                                 </div>
                                             </div>
 
+                                            <div className="bg-purple-50/80 p-3 rounded-xl text-center border border-purple-100 mb-4">
+                                                <div className="text-[10px] text-purple-600 font-black uppercase tracking-widest mb-1">チェックリスト</div>
+                                                <div className="font-black text-lg text-purple-700">{calculateChecklistScore(horse.id)}点</div>
+                                            </div>
+
                                             {horse.userCheck?.memo && (
                                                 <div className="mt-auto bg-amber-50/50 p-4 rounded-xl border border-amber-100 italic text-sm text-amber-900 line-clamp-3 leading-relaxed relative overflow-hidden">
                                                     <div className="absolute top-0 left-0 w-1 h-full bg-amber-200"></div>
@@ -293,6 +413,202 @@ export default function MyPage() {
                                 </div>
                             </Card>
                         )}
+                    </TabsContent>
+
+                    {/* チェックリスト管理ビュー */}
+                    <TabsContent value="checklist">
+                        <div className="space-y-6">
+                            {/* セリ選択と作成ボタン */}
+                            <Card className="p-6 bg-white/50 backdrop-blur">
+                                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                                    <div className="flex-1 max-w-md">
+                                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">セリ選択</Label>
+                                        <Select value={selectedSaleId?.toString()} onValueChange={(value) => setSelectedSaleId(value ? parseInt(value) : null)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="セリを選択してください" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {sales?.map((sale: any) => (
+                                                    <SelectItem key={sale.id} value={sale.id.toString()}>
+                                                        {sale.saleName}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    
+                                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button 
+                                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                                disabled={!selectedSaleId}
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                チェック項目を追加
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-md">
+                                            <DialogHeader>
+                                                <DialogTitle>新しいチェック項目</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <Label htmlFor="itemName">項目名</Label>
+                                                    <Input
+                                                        id="itemName"
+                                                        value={newItem.itemName}
+                                                        onChange={(e) => setNewItem({ ...newItem, itemName: e.target.value })}
+                                                        placeholder="例：胸囲180以上"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="itemType">項目タイプ</Label>
+                                                    <Select value={newItem.itemType} onValueChange={(value: 'boolean' | 'numeric') => setNewItem({ ...newItem, itemType: value })}>
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="boolean">チェックボックス</SelectItem>
+                                                            <SelectItem value="numeric">数値評価</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="score">スコア ({newItem.itemType === 'boolean' ? 'チェック時のスコア' : '最大スコア'})</Label>
+                                                    <Input
+                                                        id="score"
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        value={newItem.score}
+                                                        onChange={(e) => setNewItem({ ...newItem, score: parseInt(e.target.value) || 0 })}
+                                                    />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button 
+                                                        onClick={handleCreateItem}
+                                                        disabled={!newItem.itemName || !selectedSaleId}
+                                                        className="flex-1"
+                                                    >
+                                                        作成
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        onClick={() => setIsCreateDialogOpen(false)}
+                                                        className="flex-1"
+                                                    >
+                                                        キャンセル
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            </Card>
+
+                            {/* チェックリスト項目一覧 */}
+                            {!selectedSaleId ? (
+                                <Card className="p-12 text-center text-gray-500 bg-white/50 border-dashed border-2">
+                                    セリを選択してください
+                                </Card>
+                            ) : !checklistItems || checklistItems.length === 0 ? (
+                                <Card className="p-12 text-center text-gray-500 bg-white/50 border-dashed border-2">
+                                    チェックリスト項目がありません
+                                </Card>
+                            ) : (
+                                <Card className="overflow-hidden shadow-xl border-none">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">項目名</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">タイプ</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">スコア</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">作成日</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">アクション</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 bg-white">
+                                                {checklistItems.map((item: any) => (
+                                                    <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                                                        <td className="px-6 py-4">
+                                                            {editingItem?.id === item.id ? (
+                                                                <Input
+                                                                    value={editingItem.itemName}
+                                                                    onChange={(e) => setEditingItem({ ...editingItem, itemName: e.target.value })}
+                                                                    className="w-full"
+                                                                />
+                                                            ) : (
+                                                                <div className="font-medium text-gray-900">{item.itemName}</div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            {editingItem?.id === item.id ? (
+                                                                <Select value={editingItem.itemType} onValueChange={(value: 'boolean' | 'numeric') => setEditingItem({ ...editingItem, itemType: value })}>
+                                                                    <SelectTrigger className="w-32">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="boolean">チェック</SelectItem>
+                                                                        <SelectItem value="numeric">数値</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            ) : (
+                                                                <Badge variant={item.itemType === 'boolean' ? 'default' : 'secondary'}>
+                                                                    {item.itemType === 'boolean' ? 'チェックボックス' : '数値評価'}
+                                                                </Badge>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            {editingItem?.id === item.id ? (
+                                                                <Input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    value={editingItem.score}
+                                                                    onChange={(e) => setEditingItem({ ...editingItem, score: parseInt(e.target.value) || 0 })}
+                                                                    className="w-20"
+                                                                />
+                                                            ) : (
+                                                                <div className="font-bold text-blue-600">{item.score}点</div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-gray-500">
+                                                                {new Date(item.createdAt).toLocaleDateString('ja-JP')}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <div className="flex gap-2 justify-end">
+                                                                {editingItem?.id === item.id ? (
+                                                                    <>
+                                                                        <Button size="sm" onClick={handleUpdateItem} className="bg-green-600 hover:bg-green-700">
+                                                                            保存
+                                                                        </Button>
+                                                                        <Button size="sm" variant="outline" onClick={cancelEdit}>
+                                                                            キャンセル
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
+                                                                            <Edit className="w-4 h-4" />
+                                                                        </Button>
+                                                                        <Button size="sm" variant="outline" onClick={() => handleDeleteItem(item.id)} className="text-red-600 hover:text-red-700">
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>
