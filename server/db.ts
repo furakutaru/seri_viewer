@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, horses, userChecks, sales } from "../drizzle/schema";
+import { InsertUser, users, horses, userChecks, sales, userCheckItems, userCheckResults } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -258,14 +258,17 @@ export async function saveUserCheck(
       return existing;
     } else {
       // Insert new
-      const result = await db.insert(userChecks).values({
+      await db.insert(userChecks).values({
         userId,
         horseId,
         evaluation,
         memo,
         isEliminated,
       });
-      return { userId, horseId, evaluation, memo, isEliminated };
+      
+      // Return the newly created record
+      const newRecord = await getUserCheck(userId, horseId);
+      return newRecord;
     }
   } catch (error) {
     console.error("[Database] Failed to save user check:", error);
@@ -303,3 +306,155 @@ export async function getPopularityStats(horseId: number) {
 }
 
 // TODO: add feature queries here as your schema grows.
+
+// User Check Items functions
+export async function getUserCheckItems(userId: number, saleId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    let result;
+    if (saleId) {
+      result = await db
+        .select()
+        .from(userCheckItems)
+        .where(and(eq(userCheckItems.userId, userId), eq(userCheckItems.saleId, saleId)))
+        .orderBy(userCheckItems.createdAt);
+    } else {
+      result = await db
+        .select()
+        .from(userCheckItems)
+        .where(eq(userCheckItems.userId, userId))
+        .orderBy(userCheckItems.createdAt);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get user check items:", error);
+    return [];
+  }
+}
+
+export async function createUserCheckItem(
+  userId: number,
+  saleId: number,
+  itemName: string,
+  itemType: "boolean" | "numeric",
+  score: number,
+  criteria?: any
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.insert(userCheckItems).values({
+      userId,
+      saleId,
+      itemName,
+      itemType,
+      score,
+      criteria: criteria || null,
+    }).returning();
+    
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to create user check item:", error);
+    throw error;
+  }
+}
+
+export async function updateUserCheckItem(
+  itemId: number,
+  itemName?: string,
+  itemType?: "boolean" | "numeric",
+  score?: number,
+  criteria?: any
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const updateData: any = {};
+    if (itemName !== undefined) updateData.itemName = itemName;
+    if (itemType !== undefined) updateData.itemType = itemType;
+    if (score !== undefined) updateData.score = score;
+    if (criteria !== undefined) updateData.criteria = criteria;
+    updateData.updatedAt = new Date();
+
+    const result = await db
+      .update(userCheckItems)
+      .set(updateData)
+      .where(eq(userCheckItems.id, itemId))
+      .returning();
+    
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to update user check item:", error);
+    throw error;
+  }
+}
+
+export async function deleteUserCheckItem(itemId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    await db.delete(userCheckItems).where(eq(userCheckItems.id, itemId));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete user check item:", error);
+    throw error;
+  }
+}
+
+// User Check Results functions
+export async function getUserCheckResults(userCheckId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const result = await db
+      .select({
+        result: userCheckResults,
+        item: userCheckItems,
+      })
+      .from(userCheckResults)
+      .leftJoin(userCheckItems, eq(userCheckResults.checkItemId, userCheckItems.id))
+      .where(eq(userCheckResults.userCheckId, userCheckId));
+    
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get user check results:", error);
+    return [];
+  }
+}
+
+export async function saveUserCheckResults(
+  userCheckId: number,
+  results: { checkItemId: number; isChecked: boolean; scoreApplied?: number }[]
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    // Delete existing results for this userCheck
+    await db.delete(userCheckResults).where(eq(userCheckResults.userCheckId, userCheckId));
+
+    // Insert new results
+    if (results.length > 0) {
+      await db.insert(userCheckResults).values(
+        results.map(r => ({
+          userCheckId,
+          checkItemId: r.checkItemId,
+          isChecked: r.isChecked,
+          scoreApplied: r.scoreApplied || 0,
+        }))
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to save user check results:", error);
+    throw error;
+  }
+}
