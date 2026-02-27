@@ -14,9 +14,35 @@ export async function createContext(
   let user: User | null = null;
 
   try {
-    user = await sdk.authenticateRequest(opts.req);
+    if (process.env.NODE_ENV === "development") {
+      // Bypass auth in development to allow local testing
+      // Try to get from DB first, if fails, use a mock
+      try {
+        const { getUserByOpenId } = await import("../db");
+        const { ENV } = await import("./env");
+        user = (await getUserByOpenId(ENV.ownerOpenId)) || null;
+      } catch (e) {
+        console.warn("[Auth] DB lookup for dev user failed, using mock");
+      }
+
+      // If still no user, provide a mock admin user for dev
+      if (!user) {
+        user = {
+          id: 1,
+          openId: "admin",
+          name: "Local Admin (Mock)",
+          email: "admin@local.test",
+          role: "admin",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastSignedIn: new Date(),
+        } as User;
+      }
+    } else {
+      user = await sdk.authenticateRequest(opts.req);
+    }
   } catch (error) {
-    // Authentication is optional for public procedures.
+    console.error("[Auth] Authentication failed:", error);
     user = null;
   }
 
