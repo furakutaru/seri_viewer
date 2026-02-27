@@ -138,6 +138,9 @@ export async function getAllHorsesForUser(userId: number) {
       .leftJoin(sales, eq(horses.saleId, sales.id));
 
     const allChecks = await db.select().from(userChecks);
+    
+    // Get all checklist results for the user
+    const allCheckResults = await db.select().from(userCheckResults);
 
     return allHorses.map(({ horse, sale }) => {
       const checks = allChecks.filter(c => c.horseId === horse.id);
@@ -152,6 +155,13 @@ export async function getAllHorsesForUser(userId: number) {
 
       // Current user's specific check
       const myCheck = checks.find(c => c.userId === userId);
+      
+      // Calculate checklist score for this user's check
+      let checklistScore = 0;
+      if (myCheck) {
+        const userCheckResults = allCheckResults.filter(cr => cr.userCheckId === myCheck.id);
+        checklistScore = userCheckResults.reduce((total, result) => total + (result.scoreApplied || 0), 0);
+      }
 
       return {
         ...horse,
@@ -166,7 +176,8 @@ export async function getAllHorsesForUser(userId: number) {
         userCheck: myCheck ? {
           evaluation: myCheck.evaluation,
           memo: myCheck.memo,
-          isEliminated: myCheck.isEliminated
+          isEliminated: myCheck.isEliminated,
+          checklistScore
         } : null
       };
     });
