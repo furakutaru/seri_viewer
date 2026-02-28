@@ -259,3 +259,6 @@
 [2026-02-27T23:53:20.791Z] {"timestamp":1772236400016,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
 [2026-02-27T23:53:20.791Z] {"timestamp":1772236400071,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/MyPage.tsx"],"stack":null}
 [2026-02-27T23:53:20.791Z] {"timestamp":1772236400071,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-02-28T03:23:46.867Z] {"timestamp":1772249025451,"level":"WARN","args":["Select is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component."],"stack":null}
+[2026-02-28T03:23:46.867Z] {"timestamp":1772249026548,"level":"WARN","args":["Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."],"stack":null}
+[2026-02-28T03:23:50.875Z] {"timestamp":1772249030006,"level":"WARN","args":["Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}."],"stack":null}
