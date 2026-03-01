@@ -182,7 +182,7 @@ export default function MyPage() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="mb-8 grid grid-cols-4 w-full max-w-3xl mx-auto bg-white/50 backdrop-blur shadow-sm p-1 rounded-xl h-auto">
+                    <TabsList className="mb-8 grid grid-cols-4 w-full max-w-4xl mx-auto bg-white/50 backdrop-blur shadow-sm p-1 rounded-xl h-auto">
                         <TabsTrigger value="evaluation" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">評価リスト</TabsTrigger>
                         <TabsTrigger value="comparison" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">馬体比較ビュー</TabsTrigger>
                         <TabsTrigger value="checklist" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">チェックリスト管理</TabsTrigger>

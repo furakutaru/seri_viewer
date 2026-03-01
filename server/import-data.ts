@@ -164,11 +164,17 @@ export async function parseCatalog(catalogUrl: string) {
         } catch (e) { }
       }
 
-      const photoUrl = (highResPhoto || photoLink || photoImg || "").split('?')[0] || null;
-      const pedigreePdfUrl = ($(cells[0]).find('a').attr('href') || "").split('?')[0] || null;
+      // 相対パスを絶対URLに変換
+      const baseUrl = catalogUrl.replace(/\/[^\/]*$/, '/');
+      const photoUrl = (highResPhoto || photoLink || photoImg || "").split('?')[0];
+      const pedigreePdfUrl = ($(cells[0]).find('a').attr('href') || "").split('?')[0];
+      
+      // 絶対URLに変換（相対パスの場合）
+      const absolutePhotoUrl = photoUrl && !photoUrl.startsWith('http') ? baseUrl + photoUrl : photoUrl;
+      const absolutePdfUrl = pedigreePdfUrl && !pedigreePdfUrl.startsWith('http') ? baseUrl + pedigreePdfUrl : pedigreePdfUrl;
 
       if (lotNumber <= 3) {
-        console.log(`[Import Debug] Lot ${lotNumber}: photo=${photoUrl}, pdf=${pedigreePdfUrl}`);
+        console.log(`[Import Debug] Lot ${lotNumber}: photo=${absolutePhotoUrl}, pdf=${absolutePdfUrl}`);
       }
 
       horseList.push({
@@ -181,9 +187,9 @@ export async function parseCatalog(catalogUrl: string) {
         consignor: cleanText($(cells[10]).text()),
         breeder: cleanText($(cells[11]).text()),
         priceEstimate: parseInt(cleanText($(cells[14]).text()).replace(/[^0-9]/g, "")) || null,
-        photoUrl,
+        photoUrl: absolutePhotoUrl,
         videoUrl: $(cells[2]).find("a").attr("href") || null,
-        pedigreePdfUrl,
+        pedigreePdfUrl: absolutePdfUrl,
       });
     });
 
@@ -362,12 +368,23 @@ export async function importCatalogAndMeasurements(
       }
 
       return {
-        ...horse,
         saleId,
+        lotNumber: horse.lotNumber,
+        sex: horse.sex,
+        color: horse.color,
         birthDate: birthDate || null,
+        sireName: horse.sireName,
+        damName: horse.damName,
+        consignor: horse.consignor,
+        breeder: horse.breeder,
         height: measurements?.height ? parseFloat(measurements.height.toString()) : null,
         girth: measurements?.girth ? parseFloat(measurements.girth.toString()) : null,
         cannon: measurements?.cannon ? parseFloat(measurements.cannon.toString()) : null,
+        priceEstimate: horse.priceEstimate,
+        photoUrl: horse.photoUrl,
+        videoUrl: horse.videoUrl === 'javascript:void(0);' ? null : horse.videoUrl,
+        pedigreePdfUrl: horse.pedigreePdfUrl,
+        jbisUrl: null, // Explicitly set to null
       };
     });
 
@@ -384,8 +401,26 @@ export async function importCatalogAndMeasurements(
 
     for (let i = 0; i < mergedData.length; i += batchSize) {
       const batch = mergedData.slice(i, i + batchSize);
-      // Remove horseName property as it's not in the schema
-      const cleanedBatch = batch.map(({ horseName, ...rest }: any) => rest);
+      // Remove horseName property and ensure jbisUrl is null
+      const cleanedBatch = batch.map((horse: any) => ({
+        saleId: horse.saleId,
+        lotNumber: horse.lotNumber,
+        sex: horse.sex,
+        color: horse.color,
+        birthDate: horse.birthDate,
+        sireName: horse.sireName,
+        damName: horse.damName,
+        consignor: horse.consignor,
+        breeder: horse.breeder,
+        height: horse.height,
+        girth: horse.girth,
+        cannon: horse.cannon,
+        priceEstimate: horse.priceEstimate,
+        photoUrl: horse.photoUrl,
+        videoUrl: horse.videoUrl,
+        pedigreePdfUrl: horse.pedigreePdfUrl,
+        jbisUrl: null, // Explicitly set to null for catalog import
+      }));
 
       try {
         await db.insert(horses).values(cleanedBatch);

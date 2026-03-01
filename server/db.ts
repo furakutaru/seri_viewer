@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users, horses, userChecks, sales, userCheckItems, userCheckResults } from "../drizzle/schema";
+import { InsertUser, users, horses, userChecks, sales, userCheckItems, userCheckResults, pedigreeUrls } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -138,9 +138,6 @@ export async function getAllHorsesForUser(userId: number) {
       .leftJoin(sales, eq(horses.saleId, sales.id));
 
     const allChecks = await db.select().from(userChecks);
-    
-    // Get all checklist results for the user
-    const allCheckResults = await db.select().from(userCheckResults);
 
     return allHorses.map(({ horse, sale }) => {
       const checks = allChecks.filter(c => c.horseId === horse.id);
@@ -155,13 +152,6 @@ export async function getAllHorsesForUser(userId: number) {
 
       // Current user's specific check
       const myCheck = checks.find(c => c.userId === userId);
-      
-      // Calculate checklist score for this user's check
-      let checklistScore = 0;
-      if (myCheck) {
-        const userCheckResults = allCheckResults.filter(cr => cr.userCheckId === myCheck.id);
-        checklistScore = userCheckResults.reduce((total, result) => total + (result.scoreApplied || 0), 0);
-      }
 
       return {
         ...horse,
@@ -176,8 +166,7 @@ export async function getAllHorsesForUser(userId: number) {
         userCheck: myCheck ? {
           evaluation: myCheck.evaluation,
           memo: myCheck.memo,
-          isEliminated: myCheck.isEliminated,
-          checklistScore
+          isEliminated: myCheck.isEliminated
         } : null
       };
     });
@@ -467,5 +456,72 @@ export async function saveUserCheckResults(
   } catch (error) {
     console.error("[Database] Failed to save user check results:", error);
     throw error;
+  }
+}
+
+// Pedigree URL functions
+export async function getPedigreeUrl(horseName: string) {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(pedigreeUrls)
+      .where(eq(pedigreeUrls.horseName, horseName))
+      .limit(1);
+    
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to get pedigree URL:", error);
+    return null;
+  }
+}
+
+export async function savePedigreeUrl(horseName: string, jbisUrl?: string) {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    // First try to get existing record
+    const existing = await getPedigreeUrl(horseName);
+    
+    if (existing) {
+      // Update existing record
+      const result = await db
+        .update(pedigreeUrls)
+        .set({
+          jbisUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(pedigreeUrls.horseName, horseName))
+        .returning();
+      return result[0];
+    } else {
+      // Insert new record
+      const result = await db
+        .insert(pedigreeUrls)
+        .values({
+          horseName,
+          jbisUrl,
+        })
+        .returning();
+      return result[0];
+    }
+  } catch (error) {
+    console.error("[Database] Failed to save pedigree URL:", error);
+    return null;
+  }
+}
+
+export async function getAllPedigreeUrls() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    return await db.select().from(pedigreeUrls);
+  } catch (error) {
+    console.error("[Database] Failed to get all pedigree URLs:", error);
+    return [];
   }
 }

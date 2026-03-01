@@ -17,8 +17,14 @@ import {
   updateUserCheckItem,
   deleteUserCheckItem,
   getUserCheckResults,
-  saveUserCheckResults
+  saveUserCheckResults,
+  getPedigreeUrl,
+  savePedigreeUrl,
+  getAllPedigreeUrls
 } from "./db";
+import { googleSearchService } from "./_core/googleSearch";
+import { jbisImportService } from "./_core/jbisImport";
+import { jbisHorseLinkerService } from "./_core/jbisHorseLinker";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -131,16 +137,6 @@ export const appRouter = router({
           
           return await getUserCheckResults(userCheck.id);
         }),
-      getTotalScore: protectedProcedure
-        .input(z.number())
-        .query(async ({ input, ctx }) => {
-          // First get userCheckId for this horse and user
-          const userCheck = await getUserCheck(ctx.user.id, input);
-          if (!userCheck) return 0;
-          
-          const results = await getUserCheckResults(userCheck.id);
-          return results.reduce((total, { result }) => total + (result?.scoreApplied || 0), 0);
-        }),
       save: protectedProcedure
         .input(z.object({
           horseId: z.number(),
@@ -172,6 +168,37 @@ export const appRouter = router({
           return await saveUserCheckResults(userCheck.id, input.results);
         }),
     }),
+    pedigreeUrls: router({
+      getByName: protectedProcedure
+        .input(z.string())
+        .query(async ({ input }) => {
+          return await getPedigreeUrl(input);
+        }),
+      searchAndSave: publicProcedure
+        .input(z.string())
+        .mutation(async ({ input }) => {
+          console.log('[DEBUG] searchAndSave called with:', input);
+          
+          // Check if already exists
+          const existing = await getPedigreeUrl(input);
+          if (existing && existing.jbisUrl) {
+            console.log('[DEBUG] Found existing URL:', existing);
+            return existing;
+          }
+
+          // Try Google Search
+          console.log('[DEBUG] Trying Google Search...');
+          const googleUrl = await googleSearchService.searchJbisUrl(input);
+          console.log('[DEBUG] Google Search result:', googleUrl);
+          
+          // Save to database (even if null)
+          return await savePedigreeUrl(input, googleUrl || undefined);
+        }),
+      getAll: protectedProcedure
+        .query(async () => {
+          return await getAllPedigreeUrls();
+        }),
+    }),
   }),
 
   sales: router({
@@ -196,6 +223,45 @@ export const appRouter = router({
           return result;
         } catch (error: any) {
           throw new Error(`Import failed: ${error.message}`);
+        }
+      }),
+    
+    // JBISセールページからURLをインポート
+    importJbisUrls: publicProcedure
+      .input(z.object({
+        saleUrl: z.string().url(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const result = await jbisImportService.importFromSaleUrl(input.saleUrl);
+          return result;
+        } catch (error: any) {
+          throw new Error(`JBIS import failed: ${error.message}`);
+        }
+      }),
+    
+    // 複数のJBISセールURLを一括インポート
+    importMultipleJbisUrls: publicProcedure
+      .input(z.object({
+        saleUrls: z.array(z.string().url()),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const result = await jbisImportService.importFromMultipleUrls(input.saleUrls);
+          return result;
+        } catch (error: any) {
+          throw new Error(`Multiple JBIS import failed: ${error.message}`);
+        }
+      }),
+    
+    // JBIS URLの紐付け状況を確認
+    checkJbisStatus: publicProcedure
+      .query(async () => {
+        try {
+          const status = await jbisHorseLinkerService.checkExistingJbisUrls();
+          return status;
+        } catch (error: any) {
+          throw new Error(`JBIS status check failed: ${error.message}`);
         }
       }),
   }),

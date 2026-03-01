@@ -58,6 +58,7 @@ export const horses = pgTable("horses", {
   photoUrl: varchar("photoUrl", { length: 512 }),
   videoUrl: varchar("videoUrl", { length: 512 }),
   pedigreePdfUrl: varchar("pedigreePdfUrl", { length: 512 }),
+  jbisUrl: varchar("jbisUrl", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
@@ -131,3 +132,18 @@ export const popularityStats = pgTable("popularityStats", {
 
 export type PopularityStat = typeof popularityStats.$inferSelect;
 export type InsertPopularityStat = typeof popularityStats.$inferInsert;
+
+/**
+ * 血統URLテーブル
+ */
+export const pedigreeUrls = pgTable("pedigreeUrls", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  horseName: varchar("horseName", { length: 256 }).notNull(),
+  jbisUrl: varchar("jbisUrl", { length: 512 }),
+  lastVerified: timestamp("lastVerified").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type PedigreeUrl = typeof pedigreeUrls.$inferSelect;
+export type InsertPedigreeUrl = typeof pedigreeUrls.$inferInsert;
