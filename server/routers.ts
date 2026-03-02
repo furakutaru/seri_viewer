@@ -123,7 +123,7 @@ export const appRouter = router({
         }),
       create: protectedProcedure
         .input(z.object({
-          saleId: z.number(),
+          saleId: z.number().optional(),
           itemName: z.string().min(1).max(256),
           itemType: z.enum(["boolean", "numeric"]),
           score: z.number().min(0).max(100),
@@ -159,7 +159,7 @@ export const appRouter = router({
       delete: protectedProcedure
         .input(z.number())
         .mutation(async ({ input, ctx }) => {
-          return await deleteUserCheckItem(input);
+          return await deleteUserCheckItem(input, ctx.user.id);
         }),
     }),
     checkListResults: router({

@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, text, timestamp, varchar, decimal, boolean, jsonb } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, text, timestamp, varchar, decimal, boolean, jsonb, index } from "drizzle-orm/pg-core";
 
 /**
  * Core user table backing auth flow.
@@ -74,14 +74,17 @@ export type InsertHorse = typeof horses.$inferInsert;
 export const userCheckItems = pgTable("userCheckItems", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: integer("userId").notNull(),
-  saleId: integer("saleId").notNull(),
+  saleId: integer("saleId"),
   itemName: varchar("itemName", { length: 256 }).notNull(),
   itemType: text("itemType").$type<"boolean" | "numeric">().notNull(),
   score: integer("score").notNull(),
   criteria: jsonb("criteria"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("userCheckItems_userId_idx").on(table.userId),
+  userIdSaleIdIdx: index("userCheckItems_userId_saleId_idx").on(table.userId, table.saleId),
+}));
 
 export type UserCheckItem = typeof userCheckItems.$inferSelect;
 export type InsertUserCheckItem = typeof userCheckItems.$inferInsert;

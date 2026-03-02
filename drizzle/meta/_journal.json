@@ -22,6 +22,20 @@
       "when": 1772410086831,
       "tag": "0002_misty_james_howlett",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772461826158,
+      "tag": "0003_nebulous_ravenous",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772463828396,
+      "tag": "0004_modern_meltdown",
+      "breakpoints": true
     }
   ]
 }

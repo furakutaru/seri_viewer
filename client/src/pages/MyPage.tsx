@@ -13,11 +13,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import { Trash2, Edit, Plus, CheckSquare, Square } from 'lucide-react';
 
 export default function MyPage() {
     const [, setLocation] = useLocation();
     const { user, isAuthenticated, loading } = useAuth();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('evaluation');
     const [evalFilter, setEvalFilter] = useState<'ALL' | '◎' | '○' | '△'>('ALL');
 
@@ -30,7 +32,6 @@ export default function MyPage() {
         score: 1,
         criteria: ''
     });
-    const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
 
     // Fetch all horses with user-specific info
     const { data: horses, isLoading, error, refetch } = trpc.horses.getAllWithStats.useQuery(undefined, {
@@ -44,8 +45,11 @@ export default function MyPage() {
 
     // Fetch checklist items
     const { data: checklistItems, refetch: refetchChecklist } = trpc.horses.checkListItems.getAll.useQuery(
-        { saleId: selectedSaleId || undefined },
-        { enabled: isAuthenticated }
+        {},
+        { 
+            enabled: isAuthenticated,
+            staleTime: 0 // 常に最新データを取得
+        }
     );
 
     // Checklist mutations
@@ -53,7 +57,7 @@ export default function MyPage() {
         onSuccess: () => {
             refetchChecklist();
             setIsCreateDialogOpen(false);
-            setNewItem({ itemName: '', itemType: 'boolean', score: 10, criteria: '' });
+            setNewItem({ itemName: '', itemType: 'boolean', score: 1, criteria: '' });
         }
     });
 
@@ -66,7 +70,11 @@ export default function MyPage() {
 
     const deleteItem = trpc.horses.checkListItems.delete.useMutation({
         onSuccess: () => {
+            console.log('Delete mutation successful');
             refetchChecklist();
+        },
+        onError: (error) => {
+            console.error('Delete mutation failed:', error);
         }
     });
 
@@ -89,7 +97,7 @@ export default function MyPage() {
     }, [horses]);
 
     const calculateChecklistScore = (horse: any) => {
-        return horse.userCheck?.checklistScore || 0;
+        return horse.userCheck?.totalScore || 0;
     };
 
     const handleRestore = async (horseId: number, evaluation: any, memo: string) => {
@@ -103,10 +111,7 @@ export default function MyPage() {
 
     // Checklist handlers
     const handleCreateItem = () => {
-        if (!selectedSaleId) return;
-        
         createItem.mutate({
-            saleId: selectedSaleId,
             itemName: newItem.itemName,
             itemType: newItem.itemType,
             score: newItem.score,
@@ -127,9 +132,9 @@ export default function MyPage() {
     };
 
     const handleDeleteItem = (itemId: number) => {
-        if (confirm('本当に削除しますか？')) {
-            deleteItem.mutate(itemId);
-        }
+        console.log('Delete button clicked for item:', itemId);
+        console.log('Calling delete mutation...');
+        deleteItem.mutate(itemId);
     };
 
     const startEdit = (item: any) => {
@@ -424,31 +429,12 @@ export default function MyPage() {
                     {/* チェックリスト管理ビュー */}
                     <TabsContent value="checklist">
                         <div className="space-y-6">
-                            {/* セリ選択と作成ボタン */}
+                            {/* 作成ボタン */}
                             <Card className="p-6 bg-white/50 backdrop-blur">
-                                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                                    <div className="flex-1 max-w-md">
-                                        <Label className="text-sm font-semibold text-gray-700 mb-2 block">セリ選択</Label>
-                                        <Select value={selectedSaleId?.toString()} onValueChange={(value) => setSelectedSaleId(value ? parseInt(value) : null)}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="セリを選択してください" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {sales?.map((sale: any) => (
-                                                    <SelectItem key={sale.id} value={sale.id.toString()}>
-                                                        {sale.saleName}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    
+                                <div className="flex justify-end">
                                     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                                         <DialogTrigger asChild>
-                                            <Button 
-                                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                                                disabled={!selectedSaleId}
-                                            >
+                                            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold">
                                                 <Plus className="w-4 h-4 mr-2" />
                                                 チェック項目を追加
                                             </Button>
@@ -493,7 +479,7 @@ export default function MyPage() {
                                                 <div className="flex gap-2">
                                                     <Button 
                                                         onClick={handleCreateItem}
-                                                        disabled={!newItem.itemName || !selectedSaleId}
+                                                        disabled={!newItem.itemName}
                                                         className="flex-1"
                                                     >
                                                         作成
@@ -513,11 +499,7 @@ export default function MyPage() {
                             </Card>
 
                             {/* チェックリスト項目一覧 */}
-                            {!selectedSaleId ? (
-                                <Card className="p-12 text-center text-gray-500 bg-white/50 border-dashed border-2">
-                                    セリを選択してください
-                                </Card>
-                            ) : !checklistItems || checklistItems.length === 0 ? (
+                            {!checklistItems || checklistItems.length === 0 ? (
                                 <Card className="p-12 text-center text-gray-500 bg-white/50 border-dashed border-2">
                                     チェックリスト項目がありません
                                 </Card>

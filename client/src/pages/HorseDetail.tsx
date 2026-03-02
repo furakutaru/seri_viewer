@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function HorseDetail() {
   const [location, setLocation] = useLocation();
@@ -46,10 +47,10 @@ export default function HorseDetail() {
     enabled: !!horseId && isAuthenticated,
   });
 
-  // Fetch checklist items for the horse's sale
+  // Fetch checklist items (both sale-specific and general)
   const { data: checklistItems } = trpc.horses.checkListItems.getAll.useQuery(
-    { saleId: horse?.saleId },
-    { enabled: !!horse?.saleId && isAuthenticated }
+    {},
+    { enabled: isAuthenticated }
   );
 
   // Fetch checklist results for this horse
@@ -132,7 +133,16 @@ export default function HorseDetail() {
   // Save user check
   const saveUserCheck = trpc.horses.saveUserCheck.useMutation({
     onSuccess: () => {
-      // Optionally show a toast
+      toast.success('評価・メモを保存しました', {
+        description: '内容が正常に保存されました。',
+        duration: 3000,
+      });
+    },
+    onError: () => {
+      toast.error('保存に失敗しました', {
+        description: '時間をおいて再度お試しください。',
+        duration: 4000,
+      });
     },
   });
 
@@ -218,7 +228,6 @@ export default function HorseDetail() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">上場番号 {horse.lotNumber}</h1>
-            <p className="text-gray-600">馬の詳細情報 {(horse as any).sale?.saleName ? `(${(horse as any).sale.saleName})` : ''}</p>
           </div>
           <div className="flex gap-4">
             <Button
@@ -426,14 +435,14 @@ export default function HorseDetail() {
                   <div className="p-2 bg-gray-100 rounded-lg text-lg">🏢</div>
                   <div>
                     <p className="text-sm text-gray-600 font-semibold">申込者</p>
-                    <p className="text-lg text-gray-900 font-medium">{horse.consignor || '-'}</p>
+                    <p className="text-lg text-gray-900 font-medium">{horse.consignor ? (horse.consignor.includes('（') ? horse.consignor.slice(horse.consignor.indexOf('（')) : horse.consignor) : '-'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="p-2 bg-gray-100 rounded-lg text-lg">🌾</div>
                   <div>
                     <p className="text-sm text-gray-600 font-semibold">生産者</p>
-                    <p className="text-lg text-gray-900 font-medium">{horse.breeder || '-'}</p>
+                    <p className="text-lg text-gray-900 font-medium">{horse.breeder ? (horse.breeder.includes('（') ? horse.breeder.slice(horse.breeder.indexOf('（')) : horse.breeder) : '-'}</p>
                   </div>
                 </div>
               </div>

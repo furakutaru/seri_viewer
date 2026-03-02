@@ -166,7 +166,8 @@ export async function getAllHorsesForUser(userId: number) {
         userCheck: myCheck ? {
           evaluation: myCheck.evaluation,
           memo: myCheck.memo,
-          isEliminated: myCheck.isEliminated
+          isEliminated: myCheck.isEliminated,
+          totalScore: myCheck.totalScore
         } : null
       };
     });
@@ -347,7 +348,7 @@ export async function getUserCheckItems(userId: number, saleId?: number) {
 
 export async function createUserCheckItem(
   userId: number,
-  saleId: number,
+  saleId: number | undefined,
   itemName: string,
   itemType: "boolean" | "numeric",
   score: number,
@@ -359,7 +360,7 @@ export async function createUserCheckItem(
   try {
     const result = await db.insert(userCheckItems).values({
       userId,
-      saleId,
+      saleId: saleId || null,
       itemName,
       itemType,
       score,
@@ -404,11 +405,22 @@ export async function updateUserCheckItem(
   }
 }
 
-export async function deleteUserCheckItem(itemId: number) {
+export async function deleteUserCheckItem(itemId: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   try {
+    // First verify the item belongs to the user
+    const item = await db
+      .select()
+      .from(userCheckItems)
+      .where(and(eq(userCheckItems.id, itemId), eq(userCheckItems.userId, userId)))
+      .limit(1);
+    
+    if (item.length === 0) {
+      throw new Error("Item not found or access denied");
+    }
+
     await db.delete(userCheckItems).where(eq(userCheckItems.id, itemId));
     return true;
   } catch (error) {
@@ -461,6 +473,13 @@ export async function saveUserCheckResults(
         }))
       );
     }
+
+    // Calculate and update totalScore
+    const totalScore = results.reduce((sum, r) => sum + (r.scoreApplied || 0), 0);
+    await db
+      .update(userChecks)
+      .set({ totalScore, updatedAt: new Date() })
+      .where(eq(userChecks.id, userCheckId));
 
     return true;
   } catch (error) {

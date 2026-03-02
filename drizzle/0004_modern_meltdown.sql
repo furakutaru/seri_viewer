@@ -1,0 +1,2 @@
+CREATE INDEX "userCheckItems_userId_idx" ON "userCheckItems" USING btree ("userId");--> statement-breakpoint
+CREATE INDEX "userCheckItems_userId_saleId_idx" ON "userCheckItems" USING btree ("userId","saleId");

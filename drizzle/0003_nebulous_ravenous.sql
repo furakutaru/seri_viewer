@@ -1,0 +1,1 @@
+ALTER TABLE "userCheckItems" ALTER COLUMN "saleId" DROP NOT NULL;
