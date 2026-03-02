@@ -12,6 +12,7 @@ export default function HorseDetail() {
   const [location, setLocation] = useLocation();
   const [match, params] = useRoute('/horses/:id');
   const { user, isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
   const horseId = params?.id ? parseInt(params.id) : null;
 
   const [evaluation, setEvaluation] = useState<'◎' | '○' | '△' | null>(null);
@@ -28,20 +29,16 @@ export default function HorseDetail() {
   });
 
   // Navigation functions
-  const navigateToHorse = (direction: 'prev' | 'next') => {
+  const navigateToHorse = async (direction: 'prev' | 'next') => {
     if (!horse) return;
-    
-    const currentLot = horse.lotNumber;
-    let targetLot: number;
-    
-    if (direction === 'prev') {
-      targetLot = currentLot > 1 ? currentLot - 1 : 1;
-    } else {
-      targetLot = currentLot + 1;
+
+    const targetLot = direction === 'prev' ? horse.lotNumber - 1 : horse.lotNumber + 1;
+    if (targetLot < 1) return;
+
+    const targetHorse = await utils.horses.getByLotNumber.fetch({ lotNumber: targetLot, saleId: horse.saleId });
+    if (targetHorse) {
+      setLocation('/horses/' + targetHorse.id);
     }
-    
-    // Navigate to the target horse
-    setLocation(`/horses/${targetLot}`);
   };
 
   // Fetch user check data
@@ -73,7 +70,7 @@ export default function HorseDetail() {
     if (checklistResults && checklistItems) {
       const newChecklistState: Record<number, boolean> = {};
       const newNumericValues: Record<number, number> = {};
-      
+
       checklistResults.forEach(({ result, item }) => {
         if (item) {
           if (item.itemType === 'boolean') {
@@ -83,7 +80,7 @@ export default function HorseDetail() {
           }
         }
       });
-      
+
       setChecklistState(newChecklistState);
       setNumericValues(newNumericValues);
     }
@@ -190,6 +187,32 @@ export default function HorseDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+      {/* 固定ナビゲーション */}
+      {horse && (
+        <div className="fixed right-4 top-1/2 transform -translate-y-1/2 z-50 bg-white rounded-lg shadow-lg p-4 border border-gray-200">
+          <div className="text-center space-y-3">
+            <div className="text-sm font-bold text-gray-700 mb-2">
+              {horse.lotNumber}/1462
+            </div>
+
+            <button
+              onClick={() => navigateToHorse('prev')}
+              disabled={horse.lotNumber <= 1}
+              className="w-full px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              ◀
+            </button>
+
+            <button
+              onClick={() => navigateToHorse('next')}
+              className="w-full px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">
@@ -252,36 +275,16 @@ export default function HorseDetail() {
             <Card className="p-6 shadow-lg">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">基本情報 / 測尺</h2>
-                <div className="flex items-center gap-3">
-                  {/* 前の馬へ */}
-                  <button
-                    onClick={() => navigateToHorse('prev')}
-                    disabled={!horse || horse.lotNumber <= 1}
-                    className="inline-flex items-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                {horse.jbisUrl && (
+                  <a
+                    href={horse.jbisUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    ← 前の馬
-                  </button>
-                  
-                  {horse.jbisUrl && (
-                    <a
-                      href={horse.jbisUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      JBISで詳細を見る ↗
-                    </a>
-                  )}
-                  
-                  {/* 次の馬へ */}
-                  <button
-                    onClick={() => navigateToHorse('next')}
-                    disabled={!horse}
-                    className="inline-flex items-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                  >
-                    次の馬 →
-                  </button>
-                </div>
+                    JBISで詳細を見る ↗
+                  </a>
+                )}
               </div>
               <div className="space-y-8">
                 {/* 性別・毛色・年齢 */}

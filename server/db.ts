@@ -180,7 +180,7 @@ export async function getHorseById(id: number) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get horse: database not available");
-    return undefined;
+    return null;
   }
 
   try {
@@ -194,7 +194,7 @@ export async function getHorseById(id: number) {
       .where(eq(horses.id, id))
       .limit(1);
 
-    if (result.length === 0) return undefined;
+    if (result.length === 0) return null;
 
     return {
       ...result[0].horse,
@@ -202,7 +202,7 @@ export async function getHorseById(id: number) {
     };
   } catch (error) {
     console.error("[Database] Failed to get horse:", error);
-    return undefined;
+    return null;
   }
 }
 
@@ -210,7 +210,7 @@ export async function getUserCheck(userId: number, horseId: number) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get user check: database not available");
-    return undefined;
+    return null;
   }
 
   try {
@@ -219,10 +219,10 @@ export async function getUserCheck(userId: number, horseId: number) {
       .from(userChecks)
       .where(and(eq(userChecks.userId, userId), eq(userChecks.horseId, horseId)))
       .limit(1);
-    return result.length > 0 ? result[0] : undefined;
+    return result.length > 0 ? result[0] : null;
   } catch (error) {
     console.error("[Database] Failed to get user check:", error);
-    return undefined;
+    return null;
   }
 }
 
@@ -232,11 +232,21 @@ export async function saveUserCheck(
   evaluation: '◎' | '○' | '△' | null,
   memo: string,
   isEliminated: boolean
-) {
+): Promise<{
+  id: number;
+  userId: number;
+  horseId: number;
+  evaluation: "◎" | "○" | "△" | null;
+  memo: string | null;
+  isEliminated: boolean;
+  totalScore: number;
+  createdAt: Date;
+  updatedAt: Date;
+} | null> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot save user check: database not available");
-    return undefined;
+    return null;
   }
 
   try {
@@ -268,7 +278,7 @@ export async function saveUserCheck(
       
       // Return the newly created record
       const newRecord = await getUserCheck(userId, horseId);
-      return newRecord;
+      return newRecord || null;
     }
   } catch (error) {
     console.error("[Database] Failed to save user check:", error);

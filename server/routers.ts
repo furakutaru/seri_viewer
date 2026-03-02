@@ -4,13 +4,13 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { importCatalogAndMeasurements } from "./import-data";
-import { 
-  getAllHorses, 
-  getAllHorsesForUser, 
-  getHorseById, 
-  getUserCheck, 
-  saveUserCheck, 
-  getPopularityStats, 
+import {
+  getAllHorses,
+  getAllHorsesForUser,
+  getHorseById,
+  getUserCheck,
+  saveUserCheck,
+  getPopularityStats,
   getAllSales,
   getUserCheckItems,
   createUserCheckItem,
@@ -20,8 +20,11 @@ import {
   saveUserCheckResults,
   getPedigreeUrl,
   savePedigreeUrl,
+  getDb,
   getAllPedigreeUrls
 } from "./db";
+import { horses, sales, userChecks, userCheckItems, userCheckResults, pedigreeUrls } from "../drizzle/schema";
+import { eq, and } from "drizzle-orm";
 import { googleSearchService } from "./_core/googleSearch";
 import { jbisImportService } from "./_core/jbisImport";
 import { jbisHorseLinkerService } from "./_core/jbisHorseLinker";
@@ -51,6 +54,38 @@ export const appRouter = router({
       .input(z.number())
       .query(async ({ input }) => {
         return await getHorseById(input);
+      }),
+    getByLotNumber: publicProcedure
+      .input(z.object({ lotNumber: z.number(), saleId: z.number().optional() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return null;
+
+        try {
+          const conditions = input.saleId
+            ? and(eq(horses.lotNumber, input.lotNumber), eq(horses.saleId, input.saleId))
+            : eq(horses.lotNumber, input.lotNumber);
+
+          const result = await db
+            .select({
+              horse: horses,
+              sale: sales,
+            })
+            .from(horses)
+            .leftJoin(sales, eq(horses.saleId, sales.id))
+            .where(conditions)
+            .limit(1);
+
+          if (result.length === 0) return null;
+
+          return {
+            ...result[0].horse,
+            sale: result[0].sale,
+          };
+        } catch (error) {
+          console.error("[Database] Failed to get horse by lot number:", error);
+          return null;
+        }
       }),
     getUserCheck: protectedProcedure
       .input(z.number())
@@ -134,7 +169,7 @@ export const appRouter = router({
           // First get userCheckId for this horse and user
           const userCheck = await getUserCheck(ctx.user.id, input);
           if (!userCheck) return [];
-          
+
           return await getUserCheckResults(userCheck.id);
         }),
       save: protectedProcedure
@@ -149,7 +184,7 @@ export const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           // First get or create userCheck for this horse
           let userCheck = await getUserCheck(ctx.user.id, input.horseId);
-          
+
           if (!userCheck) {
             // Create a basic userCheck if it doesn't exist
             userCheck = await saveUserCheck(
@@ -160,11 +195,11 @@ export const appRouter = router({
               false
             );
           }
-          
+
           if (!userCheck) {
             throw new Error("Failed to create or retrieve user check");
           }
-          
+
           return await saveUserCheckResults(userCheck.id, input.results);
         }),
     }),
@@ -178,7 +213,7 @@ export const appRouter = router({
         .input(z.string())
         .mutation(async ({ input }) => {
           console.log('[DEBUG] searchAndSave called with:', input);
-          
+
           // Check if already exists
           const existing = await getPedigreeUrl(input);
           if (existing && existing.jbisUrl) {
@@ -190,7 +225,7 @@ export const appRouter = router({
           console.log('[DEBUG] Trying Google Search...');
           const googleUrl = await googleSearchService.searchJbisUrl(input);
           console.log('[DEBUG] Google Search result:', googleUrl);
-          
+
           // Save to database (even if null)
           return await savePedigreeUrl(input, googleUrl || undefined);
         }),
@@ -225,7 +260,7 @@ export const appRouter = router({
           throw new Error(`Import failed: ${error.message}`);
         }
       }),
-    
+
     // JBISセールページからURLをインポート
     importJbisUrls: publicProcedure
       .input(z.object({
@@ -239,7 +274,7 @@ export const appRouter = router({
           throw new Error(`JBIS import failed: ${error.message}`);
         }
       }),
-    
+
     // 複数のJBISセールURLを一括インポート
     importMultipleJbisUrls: publicProcedure
       .input(z.object({
@@ -253,7 +288,7 @@ export const appRouter = router({
           throw new Error(`Multiple JBIS import failed: ${error.message}`);
         }
       }),
-    
+
     // JBIS URLの紐付け状況を確認
     checkJbisStatus: publicProcedure
       .query(async () => {
