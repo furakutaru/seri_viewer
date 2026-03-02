@@ -146,6 +146,54 @@ export default function HorseDetail() {
     },
   });
 
+  // Exclude mutation (separate from saveUserCheck to avoid conflicting toasts)
+  const excludeMutation = trpc.horses.saveUserCheck.useMutation({
+    onSuccess: () => {
+      // Toast is shown in handleExcludeToggle after state update
+    },
+    onError: () => {
+      toast.error('操作に失敗しました', {
+        description: '時間をおいて再度お試しください。',
+        duration: 4000,
+      });
+    },
+  });
+
+  // Handle exclude/unexclude with toast
+  const handleExcludeToggle = async () => {
+    if (!horseId || !user) return;
+
+    const newIsEliminated = !isEliminated;
+    
+    // Update local state immediately for UI responsiveness
+    setIsEliminated(newIsEliminated);
+    if (newIsEliminated) {
+      setEvaluation(null);
+      setMemo('');
+    }
+
+    // Save to server
+    excludeMutation.mutate({
+      horseId,
+      evaluation: newIsEliminated ? null : evaluation,
+      memo: newIsEliminated ? '' : memo,
+      isEliminated: newIsEliminated,
+    });
+
+    // Show appropriate toast immediately for better UX
+    if (newIsEliminated) {
+      toast.success('検討対象から除外しました', {
+        description: 'この馬を検討リストから除外しました。',
+        duration: 3000,
+      });
+    } else {
+      toast.success('除外を解除しました', {
+        description: 'この馬を検討リストに戻しました。',
+        duration: 3000,
+      });
+    }
+  };
+
   const handleSaveEvaluation = async () => {
     if (!horseId || !user) return;
 
@@ -529,26 +577,6 @@ export default function HorseDetail() {
                   </div>
                 )}
 
-                {/* 除外ボタン */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <Button
-                    onClick={() => {
-                      setIsEliminated(!isEliminated);
-                      if (!isEliminated) {
-                        setEvaluation(null);
-                        setMemo('');
-                      }
-                    }}
-                    variant={isEliminated ? "default" : "outline"}
-                    className={`w-full font-bold transition-all ${isEliminated
-                      ? 'bg-red-600 hover:bg-red-700 text-white'
-                      : 'text-red-600 border-red-200 hover:bg-red-50'
-                      }`}
-                  >
-                    {isEliminated ? '除外を解除する' : '検討対象から除外する'}
-                  </Button>
-                </div>
-
                 {/* 保存ボタン */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <Button
@@ -556,6 +584,27 @@ export default function HorseDetail() {
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
                   >
                     評価・メモを保存
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* 除外ボタン - 検討メモセクションの外に移動 */}
+            <Card className="p-6 shadow-lg">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-sm font-semibold text-gray-700 mb-3">
+                    検討対象の管理
+                  </div>
+                  <Button
+                    onClick={handleExcludeToggle}
+                    variant={isEliminated ? "default" : "outline"}
+                    className={`w-full font-bold transition-all ${isEliminated
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'text-red-600 border-red-200 hover:bg-red-50'
+                      }`}
+                  >
+                    {isEliminated ? '除外を解除する' : '検討対象から除外する'}
                   </Button>
                 </div>
               </div>
