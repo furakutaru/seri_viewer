@@ -129,6 +129,7 @@ export async function getAllHorsesForUser(userId: number) {
   if (!db) return [];
 
   try {
+    // Get all horses with sales info
     const allHorses = await db
       .select({
         horse: horses,
@@ -137,21 +138,33 @@ export async function getAllHorsesForUser(userId: number) {
       .from(horses)
       .leftJoin(sales, eq(horses.saleId, sales.id));
 
-    const allChecks = await db.select().from(userChecks);
+    // Get only current user's checks - much more efficient!
+    const myChecks = await db
+      .select()
+      .from(userChecks)
+      .where(eq(userChecks.userId, userId));
+
+    // Get all checks for stats calculation (but only what we need)
+    const allChecksForStats = await db
+      .select({
+        horseId: userChecks.horseId,
+        evaluation: userChecks.evaluation,
+        isEliminated: userChecks.isEliminated,
+      })
+      .from(userChecks);
 
     return allHorses.map(({ horse, sale }) => {
-      const checks = allChecks.filter(c => c.horseId === horse.id);
+      // Find current user's check
+      const myCheck = myChecks.find(c => c.horseId === horse.id);
 
-      // Calculate global stats (excluding eliminated ones)
-      const validChecks = checks.filter(c => !c.isEliminated);
+      // Calculate global stats using only the data we need
+      const horseChecks = allChecksForStats.filter(c => c.horseId === horse.id);
+      const validChecks = horseChecks.filter(c => !c.isEliminated);
       const countExcellent = validChecks.filter(c => c.evaluation === '◎').length;
       const countGood = validChecks.filter(c => c.evaluation === '○').length;
       const countFair = validChecks.filter(c => c.evaluation === '△').length;
       const total = validChecks.length;
       const score = countExcellent * 3 + countGood * 2 + countFair * 1;
-
-      // Current user's specific check
-      const myCheck = checks.find(c => c.userId === userId);
 
       return {
         ...horse,

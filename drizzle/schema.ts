@@ -102,7 +102,11 @@ export const userChecks = pgTable("userChecks", {
   totalScore: integer("totalScore").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("userChecks_userId_idx").on(table.userId),
+  horseIdIdx: index("userChecks_horseId_idx").on(table.horseId),
+  userIdHorseIdIdx: index("userChecks_userId_horseId_idx").on(table.userId, table.horseId),
+}));
 
 export type UserCheck = typeof userChecks.$inferSelect;
 export type InsertUserCheck = typeof userChecks.$inferInsert;

@@ -79,7 +79,10 @@ export default function MyPage() {
     });
 
     const saveCheck = trpc.horses.saveUserCheck.useMutation({
-        onSuccess: () => refetch()
+        onSuccess: () => {
+            // Remove automatic refetch to avoid conflicts with optimistic updates
+            // refetch() is called manually when needed
+        }
     });
 
     const evaluatedHorses = useMemo(() => {
@@ -101,12 +104,63 @@ export default function MyPage() {
     };
 
     const handleRestore = async (horseId: number, evaluation: any, memo: string) => {
-        await saveCheck.mutateAsync({
-            horseId,
-            evaluation,
-            memo,
-            isEliminated: false
+        console.log('handleRestore called with:', { horseId, evaluation, memo });
+        
+        // Use the exact query key from the cache
+        const allQueries = queryClient.getQueryCache().getAll();
+        const horseQuery = allQueries.find(q => 
+            JSON.stringify(q.queryKey).includes('getAllWithStats')
+        );
+        
+        if (!horseQuery) {
+            console.error('Could not find horse query');
+            return;
+        }
+        
+        console.log('Found horse query with key:', horseQuery.queryKey);
+        const currentData = queryClient.getQueryData(horseQuery.queryKey);
+        console.log('Current data before update:', currentData);
+        
+        // Optimistic update: immediately update local state
+        queryClient.setQueryData(horseQuery.queryKey, (old: any) => {
+            console.log('setQueryData called with old:', old);
+            if (!old) return old;
+            const updated = old.map((horse: any) => {
+                if (horse.id === horseId) {
+                    console.log('Found horse to update:', horse.id);
+                    return {
+                        ...horse,
+                        userCheck: {
+                            ...(horse.userCheck || {}),
+                            isEliminated: false,
+                            evaluation,
+                            memo
+                        }
+                    };
+                }
+                return horse;
+            });
+            console.log('Updated data:', updated.filter((h: any) => h.id === horseId));
+            return updated;
         });
+
+        // Verify the update was applied
+        const updatedData = queryClient.getQueryData(horseQuery.queryKey);
+        console.log('Data after update:', updatedData);
+
+        // Then make it API call
+        try {
+            await saveCheck.mutateAsync({
+                horseId,
+                evaluation,
+                memo,
+                isEliminated: false
+            });
+        } catch (error) {
+            console.error('Save failed:', error);
+            // Revert on error
+            queryClient.invalidateQueries({ queryKey: horseQuery.queryKey });
+        }
     };
 
     // Checklist handlers
