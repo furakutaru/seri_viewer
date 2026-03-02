@@ -78,7 +78,7 @@ export class JbisHorseLinkerService {
             const normalizedSireName = normalizeHorseName(horse.sireName);
             const sireUpdateResult = await db.update(horses)
               .set({ sireUrl: horse.sireUrl, updatedAt: new Date() })
-              .where(sql`REGEXP_REPLACE(REGEXP_REPLACE(${horses.sireName}, '[（（][^））]*[））]$', ''), '\s+', '') = ${normalizedSireName}`)
+              .where(sql`REGEXP_REPLACE(REGEXP_REPLACE(${horses.sireName}, '[（(][^）)]*[）)]$', ''), '\s+', '') = ${normalizedSireName}`)
               .returning({ id: horses.id });
 
             if (sireUpdateResult.length > 0) {
@@ -92,7 +92,7 @@ export class JbisHorseLinkerService {
             const normalizedDamName = normalizeHorseName(horse.damName);
             const damUpdateResult = await db.update(horses)
               .set({ damUrl: horse.damUrl, updatedAt: new Date() })
-              .where(sql`REGEXP_REPLACE(REGEXP_REPLACE(${horses.damName}, '[（（][^））]*[））]$', ''), '\s+', '') = ${normalizedDamName}`)
+              .where(sql`REGEXP_REPLACE(REGEXP_REPLACE(${horses.damName}, '[（(][^）)]*[）)]$', ''), '\s+', '') = ${normalizedDamName}`)
               .returning({ id: horses.id });
 
             if (damUpdateResult.length > 0) {

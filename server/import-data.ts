@@ -28,7 +28,7 @@ function getCacheKey(url: string): string {
 /**
  * Fetch and cache HTML with encoding support
  */
-async function fetchAndCacheHtml(url: string): Promise<string> {
+export async function fetchAndCacheHtml(url: string): Promise<string> {
   const cacheKey = getCacheKey(url);
   const cachePath = path.join(CACHE_DIR, `${cacheKey}.html`);
 
@@ -40,7 +40,11 @@ async function fetchAndCacheHtml(url: string): Promise<string> {
 
   // Fetch from URL
   console.log(`Downloading HTML from ${url}...`);
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
   }
@@ -49,20 +53,38 @@ async function fetchAndCacheHtml(url: string): Promise<string> {
   const buffer = await response.arrayBuffer();
   const uint8Array = new Uint8Array(buffer);
 
-  // Detect encoding
-  const detected = jschardet.detect(Buffer.from(uint8Array));
-  const encoding = detected.encoding || 'utf-8';
-
-  console.log(`Detected encoding: ${encoding} for ${url}`);
-
-  // Decode using iconv-lite
-  // HBA is usually Shift-JIS (CP932)
-  const decodedHtml = iconv.decode(Buffer.from(uint8Array), encoding === 'ascii' ? 'utf-8' : encoding);
-
-  // Save as UTF-8 in cache for easier future use
+  // HTML declares Shift_JIS but actual content might be UTF-8, try both
+  console.log(`Testing encoding conversions for ${url}`);
+  
+  // First try as UTF-8
+  const asUtf8 = Buffer.from(uint8Array).toString('utf-8');
+  const hasVuInUtf8 = asUtf8.includes('ヴ');
+  
+  if (hasVuInUtf8) {
+    console.log(`Found ヴ characters in UTF-8, using UTF-8 decoding for ${url}`);
+    const decodedHtml = asUtf8;
+    fs.writeFileSync(cachePath, decodedHtml, 'utf-8');
+    console.log(`✓ Cached HTML to ${cachePath}`);
+    return decodedHtml;
+  }
+  
+  // Try as Shift_JIS and convert to UTF-8
+  const asShiftJis = iconv.decode(Buffer.from(uint8Array), 'Shift_JIS');
+  const hasVuInShiftJis = asShiftJis.includes('ヴ');
+  
+  if (hasVuInShiftJis) {
+    console.log(`Found ヴ characters in Shift_JIS conversion, using Shift_JIS to UTF-8 for ${url}`);
+    const decodedHtml = asShiftJis;
+    fs.writeFileSync(cachePath, decodedHtml, 'utf-8');
+    console.log(`✓ Cached HTML to ${cachePath}`);
+    return decodedHtml;
+  }
+  
+  // Fallback to UTF-8
+  console.log(`No ヴ characters found, using UTF-8 fallback for ${url}`);
+  const decodedHtml = asUtf8;
   fs.writeFileSync(cachePath, decodedHtml, 'utf-8');
   console.log(`✓ Cached HTML to ${cachePath}`);
-
   return decodedHtml;
 }
 
@@ -124,21 +146,57 @@ export async function parseCatalog(catalogUrl: string) {
       const lotNumber = parseInt($(cells[0]).text().trim());
       if (isNaN(lotNumber)) return; // Skip non-numeric lot numbers
 
-      let sireName = cleanText($(cells[7]).text());
-      let damName = cleanText($(cells[8]).text());
+      // Extract names from uma-name attribute to avoid duplicates
+      let sireName = '';
+      let damName = '';
+      
+      // Find the photo link with uma-id that contains this lot number
+      const photoLinkForName = $(`a[uma-id*="${lotNumber}"]`).first();
+      const umaName = photoLinkForName.attr('uma-name');
+      
+      if (umaName) {
+        // Parse "No.X　性　父馬：SIRE_NAME　母馬：DAM_NAME" format
+        const sireMatch = umaName.match(/父馬：([^　\s]+)/);
+        const damMatch = umaName.match(/母馬：([^　\s]+)/);
+        
+        if (sireMatch) sireName = sireMatch[1];
+        if (damMatch) damName = damMatch[1];
+      }
+      
+      // Fallback to table cells if uma-name not found
+      if (!sireName) sireName = cleanText($(cells[7]).text());
+      if (!damName) damName = cleanText($(cells[8]).text());
 
-      // Fix duplicate names
+      // Fix duplicate names - handle both exact duplicates and character variations
       if (sireName && sireName.includes(' ')) {
         const parts = sireName.split(' ');
-        if (parts[0] === parts[1]) {
-          sireName = parts[0];
+        if (parts.length === 2) {
+          // Check for exact duplicates
+          if (parts[0] === parts[1]) {
+            sireName = parts[0];
+          }
+          // Check for character variations (ウァ vs ヴ, etc.)
+          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') === 
+                   parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
+            // Use the version with ヴ (second part is usually the correct one)
+            sireName = parts[1];
+          }
         }
       }
 
       if (damName && damName.includes(' ')) {
         const parts = damName.split(' ');
-        if (parts[0] === parts[1]) {
-          damName = parts[0];
+        if (parts.length === 2) {
+          // Check for exact duplicates
+          if (parts[0] === parts[1]) {
+            damName = parts[0];
+          }
+          // Check for character variations (ウァ vs ヴ, etc.)
+          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') === 
+                   parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
+            // Use the version with ヴ (second part is usually the correct one)
+            damName = parts[1];
+          }
         }
       }
 
