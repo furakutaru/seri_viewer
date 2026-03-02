@@ -59,6 +59,8 @@ export const horses = pgTable("horses", {
   videoUrl: varchar("videoUrl", { length: 512 }),
   pedigreePdfUrl: varchar("pedigreePdfUrl", { length: 512 }),
   jbisUrl: varchar("jbisUrl", { length: 512 }),
+  sireUrl: varchar("sireUrl", { length: 512 }),
+  damUrl: varchar("damUrl", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

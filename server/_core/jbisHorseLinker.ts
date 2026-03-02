@@ -3,6 +3,15 @@ import { horses } from '../../drizzle/schema';
 import { JbisHorseData } from './jbisScraper';
 import { sql, eq } from 'drizzle-orm';
 
+// 馬名を正規化する関数（国表記などを除去）
+function normalizeHorseName(name: string): string {
+  if (!name) return '';
+  return name
+    .replace(/[（(][^）)]*[）)]$/g, '')  // 末尾の（...）を除去
+    .replace(/\s+/g, '')                 // 空白を除去
+    .trim();
+}
+
 export class JbisHorseLinkerService {
   async linkJbisUrlsToHorses(horseData: JbisHorseData[]): Promise<{ 
     updated: number; 
@@ -28,10 +37,17 @@ export class JbisHorseLinkerService {
       // 各馬のデータを処理
       for (const horse of horseData) {
         try {
-          // 馬名で既存の馬を検索
+          // 上場番号で既存の馬を検索
+          const lotNumber = parseInt(horse.horseName);
+          if (isNaN(lotNumber)) {
+            result.notFound++;
+            console.log(`[JbisLinker] Invalid lot number: ${horse.horseName}`);
+            continue;
+          }
+
           const existingHorses = await db.select()
             .from(horses)
-            .where(eq(horses.sireName, horse.horseName))
+            .where(eq(horses.lotNumber, lotNumber))
             .limit(10);
 
           if (existingHorses.length === 0) {
@@ -43,36 +59,45 @@ export class JbisHorseLinkerService {
           // 該当する馬を更新（複数いる場合も対応）
           for (const existingHorse of existingHorses) {
             await db.update(horses)
-              .set({ jbisUrl: horse.horseUrl, updatedAt: new Date() })
+              .set({ 
+                jbisUrl: horse.horseUrl, 
+                sireUrl: horse.sireUrl,
+                damUrl: horse.damUrl,
+                updatedAt: new Date() 
+              })
               .where(eq(horses.id, existingHorse.id));
             
             result.updated++;
             console.log(`[JbisLinker] Updated horse: ${horse.horseName} -> ${horse.horseUrl}`);
+            console.log(`[JbisLinker]   Sire: ${horse.sireName} -> ${horse.sireUrl}`);
+            console.log(`[JbisLinker]   Dam: ${horse.damName} -> ${horse.damUrl}`);
           }
 
-          // 父のURLを更新
+          // 父のURLを他の馬にも設定（馬名クリーニングで突き合わせ）
           if (horse.sireName && horse.sireUrl) {
+            const normalizedSireName = normalizeHorseName(horse.sireName);
             const sireUpdateResult = await db.update(horses)
-              .set({ jbisUrl: horse.sireUrl, updatedAt: new Date() })
-              .where(eq(horses.sireName, horse.sireName))
+              .set({ sireUrl: horse.sireUrl, updatedAt: new Date() })
+              .where(sql`REGEXP_REPLACE(REGEXP_REPLACE(${horses.sireName}, '[（（][^））]*[））]$', ''), '\s+', '') = ${normalizedSireName}`)
               .returning({ id: horses.id });
 
             if (sireUpdateResult.length > 0) {
               result.sireUpdated += sireUpdateResult.length;
-              console.log(`[JbisLinker] Updated sire: ${horse.sireName} -> ${horse.sireUrl}`);
+              console.log(`[JbisLinker] Updated ${sireUpdateResult.length} sires with name: ${horse.sireName} (${normalizedSireName}) -> ${horse.sireUrl}`);
             }
           }
 
-          // 母のURLを更新
+          // 母のURLを他の馬にも設定（馬名クリーニングで突き合わせ）
           if (horse.damName && horse.damUrl) {
+            const normalizedDamName = normalizeHorseName(horse.damName);
             const damUpdateResult = await db.update(horses)
-              .set({ jbisUrl: horse.damUrl, updatedAt: new Date() })
-              .where(eq(horses.damName, horse.damName))
+              .set({ damUrl: horse.damUrl, updatedAt: new Date() })
+              .where(sql`REGEXP_REPLACE(REGEXP_REPLACE(${horses.damName}, '[（（][^））]*[））]$', ''), '\s+', '') = ${normalizedDamName}`)
               .returning({ id: horses.id });
 
             if (damUpdateResult.length > 0) {
               result.damUpdated += damUpdateResult.length;
-              console.log(`[JbisLinker] Updated dam: ${horse.damName} -> ${horse.damUrl}`);
+              console.log(`[JbisLinker] Updated ${damUpdateResult.length} dams with name: ${horse.damName} (${normalizedDamName}) -> ${horse.damUrl}`);
             }
           }
 

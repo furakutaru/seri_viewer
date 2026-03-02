@@ -27,6 +27,23 @@ export default function HorseDetail() {
     enabled: !!horseId,
   });
 
+  // Navigation functions
+  const navigateToHorse = (direction: 'prev' | 'next') => {
+    if (!horse) return;
+    
+    const currentLot = horse.lotNumber;
+    let targetLot: number;
+    
+    if (direction === 'prev') {
+      targetLot = currentLot > 1 ? currentLot - 1 : 1;
+    } else {
+      targetLot = currentLot + 1;
+    }
+    
+    // Navigate to the target horse
+    setLocation(`/horses/${targetLot}`);
+  };
+
   // Fetch user check data
   const { data: userCheck } = trpc.horses.getUserCheck.useQuery(horseId || 0, {
     enabled: !!horseId && isAuthenticated,
@@ -233,7 +250,39 @@ export default function HorseDetail() {
 
             {/* 基本情報 & 測尺 */}
             <Card className="p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">基本情報 / 測尺</h2>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">基本情報 / 測尺</h2>
+                <div className="flex items-center gap-3">
+                  {/* 前の馬へ */}
+                  <button
+                    onClick={() => navigateToHorse('prev')}
+                    disabled={!horse || horse.lotNumber <= 1}
+                    className="inline-flex items-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← 前の馬
+                  </button>
+                  
+                  {horse.jbisUrl && (
+                    <a
+                      href={horse.jbisUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      JBISで詳細を見る ↗
+                    </a>
+                  )}
+                  
+                  {/* 次の馬へ */}
+                  <button
+                    onClick={() => navigateToHorse('next')}
+                    disabled={!horse}
+                    className="inline-flex items-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    次の馬 →
+                  </button>
+                </div>
+              </div>
               <div className="space-y-8">
                 {/* 性別・毛色・年齢 */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
@@ -310,12 +359,40 @@ export default function HorseDetail() {
                 {/* 父・母の名前 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-1">Sire / 父</p>
-                    <p className="text-xl text-gray-900 font-black">{horse.sireName || '-'}</p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-1">Sire / 父</p>
+                        <p className="text-xl text-gray-900 font-black">{horse.sireName || '-'}</p>
+                      </div>
+                      {horse.sireUrl && (
+                        <a
+                          href={horse.sireUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline font-medium"
+                        >
+                          JBIS
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div className="p-4 bg-pink-50/50 rounded-lg border border-pink-100">
-                    <p className="text-[10px] text-pink-600 font-bold uppercase tracking-wider mb-1">Dam / 母</p>
-                    <p className="text-xl text-gray-900 font-black">{horse.damName || '-'}</p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-[10px] text-pink-600 font-bold uppercase tracking-wider mb-1">Dam / 母</p>
+                        <p className="text-xl text-gray-900 font-black">{horse.damName || '-'}</p>
+                      </div>
+                      {horse.damUrl && (
+                        <a
+                          href={horse.damUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline font-medium"
+                        >
+                          JBIS
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 
