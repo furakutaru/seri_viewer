@@ -55,11 +55,11 @@ export async function fetchAndCacheHtml(url: string): Promise<string> {
 
   // HTML declares Shift_JIS but actual content might be UTF-8, try both
   console.log(`Testing encoding conversions for ${url}`);
-  
+
   // First try as UTF-8
   const asUtf8 = Buffer.from(uint8Array).toString('utf-8');
   const hasVuInUtf8 = asUtf8.includes('ヴ');
-  
+
   if (hasVuInUtf8) {
     console.log(`Found ヴ characters in UTF-8, using UTF-8 decoding for ${url}`);
     const decodedHtml = asUtf8;
@@ -67,11 +67,11 @@ export async function fetchAndCacheHtml(url: string): Promise<string> {
     console.log(`✓ Cached HTML to ${cachePath}`);
     return decodedHtml;
   }
-  
+
   // Try as Shift_JIS and convert to UTF-8
   const asShiftJis = iconv.decode(Buffer.from(uint8Array), 'Shift_JIS');
   const hasVuInShiftJis = asShiftJis.includes('ヴ');
-  
+
   if (hasVuInShiftJis) {
     console.log(`Found ヴ characters in Shift_JIS conversion, using Shift_JIS to UTF-8 for ${url}`);
     const decodedHtml = asShiftJis;
@@ -79,7 +79,7 @@ export async function fetchAndCacheHtml(url: string): Promise<string> {
     console.log(`✓ Cached HTML to ${cachePath}`);
     return decodedHtml;
   }
-  
+
   // Fallback to UTF-8
   console.log(`No ヴ characters found, using UTF-8 fallback for ${url}`);
   const decodedHtml = asUtf8;
@@ -149,20 +149,20 @@ export async function parseCatalog(catalogUrl: string) {
       // Extract names from uma-name attribute to avoid duplicates
       let sireName = '';
       let damName = '';
-      
+
       // Find the photo link with uma-id that contains this lot number
       const photoLinkForName = $(`a[uma-id*="${lotNumber}"]`).first();
       const umaName = photoLinkForName.attr('uma-name');
-      
+
       if (umaName) {
         // Parse "No.X　性　父馬：SIRE_NAME　母馬：DAM_NAME" format
         const sireMatch = umaName.match(/父馬：([^　\s]+)/);
         const damMatch = umaName.match(/母馬：([^　\s]+)/);
-        
+
         if (sireMatch) sireName = sireMatch[1];
         if (damMatch) damName = damMatch[1];
       }
-      
+
       // Fallback to table cells if uma-name not found
       if (!sireName) sireName = cleanText($(cells[7]).text());
       if (!damName) damName = cleanText($(cells[8]).text());
@@ -176,8 +176,8 @@ export async function parseCatalog(catalogUrl: string) {
             sireName = parts[0];
           }
           // Check for character variations (ウァ vs ヴ, etc.)
-          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') === 
-                   parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
+          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') ===
+            parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
             // Use the version with ヴ (second part is usually the correct one)
             sireName = parts[1];
           }
@@ -192,8 +192,8 @@ export async function parseCatalog(catalogUrl: string) {
             damName = parts[0];
           }
           // Check for character variations (ウァ vs ヴ, etc.)
-          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') === 
-                   parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
+          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') ===
+            parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
             // Use the version with ヴ (second part is usually the correct one)
             damName = parts[1];
           }
@@ -211,22 +211,40 @@ export async function parseCatalog(catalogUrl: string) {
       const photoLink = photoCell.find('a[data-lightbox]').attr('href') || photoCell.find('a').attr('href');
       const photoImg = photoCell.find('img').attr('src');
 
+      // 相対パスを絶対URLに変換するためのベースURL
+      const baseUrl = catalogUrl.replace(/\/[^\/]*$/, '/');
+
       // data-titleの中にある実際の画像URLを探す（HBAのLightbox構成に対応）
-      let highResPhoto = null;
+      let imageUrls: string[] = [];
       const dataTitle = photoCell.find('a[data-lightbox]').attr('data-title');
       if (dataTitle) {
         try {
           const title$ = cheerio.load(dataTitle);
-          const firstImg = title$('img').first().attr('src');
-          if (firstImg) highResPhoto = firstImg.split('?')[0];
+          // 複数の画像を取得
+          title$('img').each((_, img) => {
+            const imgSrc = title$(img).attr('src');
+            if (imgSrc) {
+              const cleanedSrc = imgSrc.split('?')[0];
+              const absoluteImgSrc = cleanedSrc.startsWith('http') ? cleanedSrc : baseUrl + cleanedSrc;
+              imageUrls.push(absoluteImgSrc);
+            }
+          });
         } catch (e) { }
       }
 
-      // 相対パスを絶対URLに変換
-      const baseUrl = catalogUrl.replace(/\/[^\/]*$/, '/');
-      const photoUrl = (highResPhoto || photoLink || photoImg || "").split('?')[0];
+      // 画像が見つからない場合は従来の方法で取得
+      if (imageUrls.length === 0) {
+        const rawPhoto = photoImg || photoLink || "";
+        const highResPhoto = rawPhoto.split('?')[0];
+        if (highResPhoto) {
+          const absoluteImgSrc = highResPhoto.startsWith('http') ? highResPhoto : baseUrl + highResPhoto;
+          imageUrls.push(absoluteImgSrc);
+        }
+      }
+
+      const photoUrl = imageUrls.length > 0 ? imageUrls[0] : "";
       const pedigreePdfUrl = ($(cells[0]).find('a').attr('href') || "").split('?')[0];
-      
+
       // 絶対URLに変換（相対パスの場合）
       const absolutePhotoUrl = photoUrl && !photoUrl.startsWith('http') ? baseUrl + photoUrl : photoUrl;
       const absolutePdfUrl = pedigreePdfUrl && !pedigreePdfUrl.startsWith('http') ? baseUrl + pedigreePdfUrl : pedigreePdfUrl;
@@ -245,7 +263,8 @@ export async function parseCatalog(catalogUrl: string) {
         consignor: cleanText($(cells[10]).text()),
         breeder: cleanText($(cells[11]).text()),
         priceEstimate: parseInt(cleanText($(cells[14]).text()).replace(/[^0-9]/g, "")) || null,
-        photoUrl: absolutePhotoUrl,
+        photoUrl: photoUrl,
+        imageUrls: imageUrls, // 複数画像URLを保存
         videoUrl: $(cells[2]).find("a").attr("href") || null,
         pedigreePdfUrl: absolutePdfUrl,
       });
@@ -440,6 +459,7 @@ export async function importCatalogAndMeasurements(
         cannon: measurements?.cannon ? parseFloat(measurements.cannon.toString()) : null,
         priceEstimate: horse.priceEstimate,
         photoUrl: horse.photoUrl,
+        imageUrls: horse.imageUrls,
         videoUrl: horse.videoUrl === 'javascript:void(0);' ? null : horse.videoUrl,
         pedigreePdfUrl: horse.pedigreePdfUrl,
         jbisUrl: null, // Explicitly set to null
@@ -475,6 +495,7 @@ export async function importCatalogAndMeasurements(
         cannon: horse.cannon,
         priceEstimate: horse.priceEstimate,
         photoUrl: horse.photoUrl,
+        imageUrls: horse.imageUrls,
         videoUrl: horse.videoUrl,
         pedigreePdfUrl: horse.pedigreePdfUrl,
         jbisUrl: null, // Explicitly set to null for catalog import

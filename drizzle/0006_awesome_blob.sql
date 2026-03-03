@@ -1,0 +1,1 @@
+ALTER TABLE "horses" ADD COLUMN "imageUrls" varchar(512)[];

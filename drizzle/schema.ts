@@ -56,6 +56,7 @@ export const horses = pgTable("horses", {
   cannon: decimal("cannon", { precision: 5, scale: 2 }),
   priceEstimate: integer("priceEstimate"),
   photoUrl: varchar("photoUrl", { length: 512 }),
+  imageUrls: varchar("imageUrls", { length: 512 }).array(),
   videoUrl: varchar("videoUrl", { length: 512 }),
   pedigreePdfUrl: varchar("pedigreePdfUrl", { length: 512 }),
   jbisUrl: varchar("jbisUrl", { length: 512 }),

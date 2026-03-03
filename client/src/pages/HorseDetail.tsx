@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ImageCarousel } from '@/components/ImageCarousel';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
@@ -19,6 +20,7 @@ export default function HorseDetail() {
   const [evaluation, setEvaluation] = useState<'◎' | '○' | '△' | null>(null);
   const [memo, setMemo] = useState('');
   const [isEliminated, setIsEliminated] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
 
   // Checklist state management
   const [checklistState, setChecklistState] = useState<Record<number, boolean>>({});
@@ -171,7 +173,7 @@ export default function HorseDetail() {
     if (!horseId || !user) return;
 
     const newIsEliminated = !isEliminated;
-    
+
     // Update local state immediately for UI responsiveness
     setIsEliminated(newIsEliminated);
     if (newIsEliminated) {
@@ -214,15 +216,51 @@ export default function HorseDetail() {
 
   // Initialize form when data loads
   useEffect(() => {
-    if (userCheck) {
-      setEvaluation(userCheck.evaluation);
-      setMemo(userCheck.memo || '');
-      setIsEliminated(userCheck.isEliminated);
+    try {
+      if (userCheck && typeof userCheck === 'object' && userCheck !== null) {
+        setEvaluation(userCheck.evaluation || null);
+        setMemo(userCheck.memo || '');
+        setIsEliminated(userCheck.isEliminated || false);
+      }
+    } catch (error) {
+      console.error('Error initializing user check data:', error);
+      // デフォルト値を設定
+      setEvaluation(null);
+      setMemo('');
+      setIsEliminated(false);
     }
   }, [userCheck]);
 
   // Navigation functionality temporarily disabled
   const navigation = null;
+
+  // Get absolute URLs for photo and pedigree PDF using the catalog URL from sale info
+  // 画像URLの準備 - 新しいimageUrlsフィールドと古いphotoUrlフィールドの両方に対応
+  // horseデータが変更されたら画像URLを再計算
+  useEffect(() => {
+    if (!horse) {
+      setImages([]);
+      return;
+    }
+
+    const urlSet = new Set<string>();
+
+    // 新しいimageUrlsフィールドを優先的に処理
+    if (horse.imageUrls && Array.isArray(horse.imageUrls)) {
+      horse.imageUrls.forEach(url => {
+        if (url && typeof url === 'string' && url.trim() !== '') {
+          urlSet.add(url);
+        }
+      });
+    }
+
+    // 古いphotoUrlフィールドを処理（既に含まれていれば無視される）
+    if (horse.photoUrl && typeof horse.photoUrl === 'string' && horse.photoUrl.trim() !== '') {
+      urlSet.add(horse.photoUrl);
+    }
+
+    setImages(Array.from(urlSet));
+  }, [horse?.id, (horse as any)?.imageUrls, horse?.photoUrl]);
 
   if (isLoading || !horse) {
     return (
@@ -246,8 +284,8 @@ export default function HorseDetail() {
     );
   }
 
-  // Get absolute URLs for photo and pedigree PDF using the catalog URL from sale info
-  const photoUrl = getAbsoluteUrl(horse.photoUrl, (horse as any).sale?.catalogUrl);
+
+  const photoUrl = images.length > 0 ? images[0] : null;
   const pedigreePdfUrl = getAbsoluteUrl(horse.pedigreePdfUrl, (horse as any).sale?.catalogUrl);
 
   return (
@@ -307,32 +345,11 @@ export default function HorseDetail() {
             {/* 写真 */}
             <Card className="p-6 shadow-lg overflow-hidden">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">馬体画像</h2>
-              {photoUrl ? (
-                <div className="relative group">
-                  <img
-                    src={photoUrl}
-                    alt={`上場番号 ${horse.lotNumber}`}
-                    className="w-full h-auto rounded-lg shadow-md object-contain max-h-[500px] transition-transform duration-300 group-hover:scale-[1.02]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=No+Image';
-                    }}
-                  />
-                  <div className="mt-4 flex justify-end">
-                    <a
-                      href={photoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                    >
-                      画像を別タブで開く ↗
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gray-100 rounded-lg p-12 text-center text-gray-500">
-                  画像が登録されていません
-                </div>
-              )}
+              <ImageCarousel
+                images={images}
+                alt={`上場番号 ${horse.lotNumber}`}
+                className="w-full"
+              />
             </Card>
 
             {/* 基本情報 & 測尺 */}
