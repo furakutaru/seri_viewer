@@ -197,3 +197,25 @@
 [2026-03-03T16:20:18.212Z] {"timestamp":1772554816301,"level":"INFO","args":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"],"stack":null}
 [2026-03-03T16:26:38.473Z] {"timestamp":1772555197776,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/HorseDetail.tsx"],"stack":null}
 [2026-03-03T16:26:38.473Z] {"timestamp":1772555197776,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-03-03T16:34:51.547Z] {"timestamp":1772555678131,"level":"LOG","args":["[vite] server connection lost. Polling for restart..."],"stack":null}
+[2026-03-03T16:34:55.566Z] {"timestamp":1772555693553,"level":"DEBUG","args":["[Manus] Debug collector initialized (no rrweb, UI events only)"],"stack":null}
+[2026-03-03T16:34:55.566Z] {"timestamp":1772555693554,"level":"DEBUG","args":["[vite] connected."],"stack":null}
+[2026-03-03T16:34:55.566Z] {"timestamp":1772555693997,"level":"INFO","args":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"],"stack":null}
+[2026-03-03T16:34:59.619Z] {"timestamp":1772555697551,"level":"DEBUG","args":["[Manus] Debug collector initialized (no rrweb, UI events only)"],"stack":null}
+[2026-03-03T16:34:59.619Z] {"timestamp":1772555697556,"level":"DEBUG","args":["[vite] connected."],"stack":null}
+[2026-03-03T16:34:59.619Z] {"timestamp":1772555697962,"level":"INFO","args":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"],"stack":null}
+[2026-03-03T16:35:41.789Z] {"timestamp":1772555741723,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/Horses.tsx"],"stack":null}
+[2026-03-03T16:35:41.789Z] {"timestamp":1772555741724,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-03-03T16:35:44.351Z] {"timestamp":1772555742342,"level":"DEBUG","args":["[Manus] Debug collector initialized (no rrweb, UI events only)"],"stack":null}
+[2026-03-03T16:35:44.351Z] {"timestamp":1772555742373,"level":"DEBUG","args":["[vite] connected."],"stack":null}
+[2026-03-03T16:35:44.351Z] {"timestamp":1772555742380,"level":"INFO","args":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"],"stack":null}
+[2026-03-03T16:36:04.772Z] {"timestamp":1772555762807,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/Horses.tsx"],"stack":null}
+[2026-03-03T16:36:04.772Z] {"timestamp":1772555762807,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-03-03T16:37:22.954Z] {"timestamp":1772555841429,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/Horses.tsx"],"stack":null}
+[2026-03-03T16:37:22.954Z] {"timestamp":1772555841429,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-03-03T16:56:47.532Z] {"timestamp":1772556999991,"level":"DEBUG","args":["[vite]","hot updated: /src/pages/Horses.tsx"],"stack":null}
+[2026-03-03T16:56:47.532Z] {"timestamp":1772556999992,"level":"DEBUG","args":["[vite]","hot updated: /src/index.css"],"stack":null}
+[2026-03-03T23:21:19.672Z] {"timestamp":1772580076399,"level":"LOG","args":["[vite] server connection lost. Polling for restart..."],"stack":null}
+[2026-03-03T23:21:22.019Z] {"timestamp":1772580080004,"level":"DEBUG","args":["[Manus] Debug collector initialized (no rrweb, UI events only)"],"stack":null}
+[2026-03-03T23:21:22.019Z] {"timestamp":1772580080006,"level":"DEBUG","args":["[vite] connected."],"stack":null}
+[2026-03-03T23:21:22.019Z] {"timestamp":1772580080491,"level":"INFO","args":["%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools","font-weight:bold"],"stack":null}

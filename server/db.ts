@@ -268,7 +268,7 @@ export async function saveUserCheck(
 
     if (existing) {
       // Update existing
-      await db
+      const result = await db
         .update(userChecks)
         .set({
           evaluation,
@@ -278,24 +278,65 @@ export async function saveUserCheck(
         })
         .where(
           and(eq(userChecks.userId, userId), eq(userChecks.horseId, horseId))
-        );
-      return existing;
+        )
+        .returning();
+      return result[0];
     } else {
       // Insert new
-      await db.insert(userChecks).values({
+      const result = await db.insert(userChecks).values({
         userId,
         horseId,
         evaluation,
         memo,
         isEliminated,
-      });
-      
-      // Return the newly created record
-      const newRecord = await getUserCheck(userId, horseId);
-      return newRecord || null;
+      }).returning();
+
+      return result[0];
     }
   } catch (error) {
     console.error("[Database] Failed to save user check:", error);
+    throw error;
+  }
+}
+
+export async function bulkSaveUserCheck(
+  userId: number,
+  horseIds: number[],
+  evaluation: '◎' | '○' | '△' | null,
+  isEliminated: boolean
+) {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const results = [];
+    for (const horseId of horseIds) {
+      const existing = await getUserCheck(userId, horseId);
+      if (existing) {
+        const updateResult = await db
+          .update(userChecks)
+          .set({
+            evaluation,
+            isEliminated,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(userChecks.userId, userId), eq(userChecks.horseId, horseId)))
+          .returning();
+        results.push(updateResult[0]);
+      } else {
+        const insertResult = await db.insert(userChecks).values({
+          userId,
+          horseId,
+          evaluation,
+          isEliminated,
+          memo: "",
+        }).returning();
+        results.push(insertResult[0]);
+      }
+    }
+    return results;
+  } catch (error) {
+    console.error("[Database] Failed to bulk save user check:", error);
     throw error;
   }
 }
@@ -329,6 +370,24 @@ export async function getPopularityStats(horseId: number) {
   }
 }
 
+export async function getUniqueSires() {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const result = await db
+      .select({ sireName: horses.sireName })
+      .from(horses)
+      .groupBy(horses.sireName)
+      .orderBy(horses.sireName);
+
+    return result.map(r => r.sireName).filter(Boolean) as string[];
+  } catch (error) {
+    console.error("[Database] Failed to get unique sires:", error);
+    return [];
+  }
+}
+
 // TODO: add feature queries here as your schema grows.
 
 // User Check Items functions
@@ -351,7 +410,7 @@ export async function getUserCheckItems(userId: number, saleId?: number) {
         .where(eq(userCheckItems.userId, userId))
         .orderBy(userCheckItems.createdAt);
     }
-    
+
     return result;
   } catch (error) {
     console.error("[Database] Failed to get user check items:", error);
@@ -379,7 +438,7 @@ export async function createUserCheckItem(
       score,
       criteria: criteria || null,
     }).returning();
-    
+
     return result[0];
   } catch (error) {
     console.error("[Database] Failed to create user check item:", error);
@@ -410,7 +469,7 @@ export async function updateUserCheckItem(
       .set(updateData)
       .where(eq(userCheckItems.id, itemId))
       .returning();
-    
+
     return result[0];
   } catch (error) {
     console.error("[Database] Failed to update user check item:", error);
@@ -429,7 +488,7 @@ export async function deleteUserCheckItem(itemId: number, userId: number) {
       .from(userCheckItems)
       .where(and(eq(userCheckItems.id, itemId), eq(userCheckItems.userId, userId)))
       .limit(1);
-    
+
     if (item.length === 0) {
       throw new Error("Item not found or access denied");
     }
@@ -456,7 +515,7 @@ export async function getUserCheckResults(userCheckId: number) {
       .from(userCheckResults)
       .leftJoin(userCheckItems, eq(userCheckResults.checkItemId, userCheckItems.id))
       .where(eq(userCheckResults.userCheckId, userCheckId));
-    
+
     return result;
   } catch (error) {
     console.error("[Database] Failed to get user check results:", error);
@@ -512,7 +571,7 @@ export async function getPedigreeUrl(horseName: string) {
       .from(pedigreeUrls)
       .where(eq(pedigreeUrls.horseName, horseName))
       .limit(1);
-    
+
     return result[0] || null;
   } catch (error) {
     console.error("[Database] Failed to get pedigree URL:", error);
@@ -527,7 +586,7 @@ export async function savePedigreeUrl(horseName: string, jbisUrl?: string) {
   try {
     // First try to get existing record
     const existing = await getPedigreeUrl(horseName);
-    
+
     if (existing) {
       // Update existing record
       const result = await db

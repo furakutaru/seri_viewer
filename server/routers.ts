@@ -10,6 +10,7 @@ import {
   getHorseById,
   getUserCheck,
   saveUserCheck,
+  bulkSaveUserCheck,
   getPopularityStats,
   getAllSales,
   getUserCheckItems,
@@ -21,7 +22,8 @@ import {
   getPedigreeUrl,
   savePedigreeUrl,
   getDb,
-  getAllPedigreeUrls
+  getAllPedigreeUrls,
+  getUniqueSires
 } from "./db";
 import { horses, sales, userChecks, userCheckItems, userCheckResults, pedigreeUrls } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
@@ -107,6 +109,24 @@ export const appRouter = router({
           input.memo,
           input.isEliminated
         );
+      }),
+    bulkSaveUserCheck: protectedProcedure
+      .input(z.object({
+        horseIds: z.array(z.number()),
+        evaluation: z.enum(["◎", "○", "△"]).nullable(),
+        isEliminated: z.boolean(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        return await bulkSaveUserCheck(
+          ctx.user.id,
+          input.horseIds,
+          input.evaluation,
+          input.isEliminated
+        );
+      }),
+    getSires: protectedProcedure
+      .query(async () => {
+        return await getUniqueSires();
       }),
     getPopularityStats: publicProcedure
       .input(z.number())

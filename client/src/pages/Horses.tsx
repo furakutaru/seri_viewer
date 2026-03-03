@@ -5,17 +5,69 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import {
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Trash2,
+  Star,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Horses() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, loading } = useAuth();
+  const utils = trpc.useUtils();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'lotNumber' | 'birthDate' | 'popularity' | 'height' | 'girth' | 'cannon'>('lotNumber');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    sex: [] as string[],
+    heightMin: '',
+    heightMax: '',
+    girthMin: '',
+    girthMax: '',
+    cannonMin: '',
+    cannonMax: '',
+    sire: '',
+  });
+
+  // Bulk selection state
+  const [selectedHorseIds, setSelectedHorseIds] = useState<number[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
   // Fetch all horses with stats
   const { data: horses, isLoading, error } = trpc.horses.getAllWithStats.useQuery(undefined, {
     enabled: isAuthenticated
+  });
+
+  // Fetch unique sires for autocomplete
+  const { data: sires } = trpc.horses.getSires.useQuery(undefined, {
+    enabled: isAuthenticated
+  });
+
+  // Bulk update mutation
+  const bulkUpdateMutation = trpc.horses.bulkSaveUserCheck.useMutation({
+    onSuccess: () => {
+      utils.horses.getAllWithStats.invalidate();
+      setSelectedHorseIds([]);
+      toast.success("一括評価を更新しました");
+    },
+    onError: (err) => {
+      toast.error(`更新に失敗しました: ${err.message}`);
+    }
   });
 
   // Filter and sort horses
@@ -23,17 +75,42 @@ export default function Horses() {
     if (!horses) return [];
 
     let filtered = horses.filter((horse: any) => {
+      // Basic elimination check (always exclude eliminated horses from this list)
+      if (horse.userCheck?.isEliminated) return false;
+
       const searchLower = searchTerm.toLowerCase();
-      return (
-        (!horse.userCheck?.isEliminated) && (
-          horse.lotNumber.toString().includes(searchLower) ||
-          horse.sireName?.toLowerCase().includes(searchLower) ||
-          horse.damName?.toLowerCase().includes(searchLower) ||
-          horse.sex?.toLowerCase().includes(searchLower) ||
-          horse.color?.toLowerCase().includes(searchLower) ||
-          horse.userCheck?.memo?.toLowerCase().includes(searchLower)
-        )
+
+      // Text search
+      const matchesSearch = searchTerm === '' || (
+        horse.lotNumber.toString().includes(searchLower) ||
+        horse.sireName?.toLowerCase().includes(searchLower) ||
+        horse.damName?.toLowerCase().includes(searchLower) ||
+        horse.sex?.toLowerCase().includes(searchLower) ||
+        horse.color?.toLowerCase().includes(searchLower) ||
+        horse.userCheck?.memo?.toLowerCase().includes(searchLower)
       );
+
+      if (!matchesSearch) return false;
+
+      // Gender filter
+      if (filters.sex.length > 0 && !filters.sex.includes(horse.sex)) return false;
+
+      // Measurements filters
+      const h = horse.height ? parseFloat(horse.height) : null;
+      const g = horse.girth ? parseFloat(horse.girth) : null;
+      const c = horse.cannon ? parseFloat(horse.cannon) : null;
+
+      if (filters.heightMin && (h === null || h < parseFloat(filters.heightMin))) return false;
+      if (filters.heightMax && (h === null || h > parseFloat(filters.heightMax))) return false;
+      if (filters.girthMin && (g === null || g < parseFloat(filters.girthMin))) return false;
+      if (filters.girthMax && (g === null || g > parseFloat(filters.girthMax))) return false;
+      if (filters.cannonMin && (c === null || c < parseFloat(filters.cannonMin))) return false;
+      if (filters.cannonMax && (c === null || c > parseFloat(filters.cannonMax))) return false;
+
+      // Sire filter (text match)
+      if (filters.sire && !horse.sireName?.toLowerCase().includes(filters.sire.toLowerCase())) return false;
+
+      return true;
     });
 
     // Sort
@@ -58,7 +135,7 @@ export default function Horses() {
     });
 
     return filtered;
-  }, [horses, searchTerm, sortBy, sortOrder]);
+  }, [horses, searchTerm, sortBy, sortOrder, filters]);
 
   const handleSort = (column: 'lotNumber' | 'birthDate' | 'popularity' | 'height' | 'girth' | 'cannon') => {
     if (sortBy === column) {
@@ -123,20 +200,224 @@ export default function Horses() {
 
         {/* 検索・フィルター */}
         <Card className="p-6 mb-8 shadow-lg">
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              馬を検索
-            </label>
-            <Input
-              type="text"
-              placeholder="上場番号、父馬名、母馬名、性別、毛色、セリ名で検索..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full text-lg py-6"
-            />
-            <p className="text-sm text-gray-500 mt-2 font-medium">
-              該当件数: <span className="text-blue-600 font-bold">{filteredHorses.length}</span> 件
-            </p>
+          <div className="flex flex-col gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                馬を検索
+              </label>
+              <div className="flex gap-4">
+                <Input
+                  type="text"
+                  placeholder="上場番号、父馬名、母馬名、性別、毛色、セリ名で検索..."
+                  value={searchTerm}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                  className="flex-1 text-lg py-6"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`h-auto px-6 border-2 font-bold flex gap-2 ${showFilters ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-gray-200'}`}
+                >
+                  <Filter className="w-5 h-5" />
+                  絞り込み
+                  {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
+                {/* 性別 */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">性別</h4>
+                  <div className="flex flex-wrap gap-4">
+                    {['牡', '牝', 'セン'].map((sex) => (
+                      <div key={sex} className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+                        <Checkbox
+                          id={`sex-${sex}`}
+                          checked={filters.sex.includes(sex)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFilters({ ...filters, sex: [...filters.sex, sex] });
+                            } else {
+                              setFilters({ ...filters, sex: filters.sex.filter((s: string) => s !== sex) });
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`sex-${sex}`}
+                          className="text-sm font-bold text-gray-700 cursor-pointer"
+                        >
+                          {sex}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 父馬 (Autocomplete via Datalist) */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">父馬</h4>
+                  <Input
+                    list="sires-list"
+                    placeholder="父馬名を入力..."
+                    value={filters.sire}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, sire: e.target.value })}
+                    className="bg-white"
+                  />
+                  <datalist id="sires-list">
+                    {sires?.map(sire => (
+                      <option key={sire} value={sire} />
+                    ))}
+                  </datalist>
+                </div>
+
+                {/* 体高・胸囲 */}
+                <div className="space-y-3 lg:col-span-2">
+                  <h4 className="text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">馬体計測値 (〇〇 〜 〇〇)</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">体高</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          placeholder="最小"
+                          value={filters.heightMin}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, heightMin: e.target.value })}
+                          className="h-9 px-2 text-sm bg-white"
+                        />
+                        <span className="text-gray-400">~</span>
+                        <Input
+                          type="number"
+                          placeholder="最大"
+                          value={filters.heightMax}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, heightMax: e.target.value })}
+                          className="h-9 px-2 text-sm bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">胸囲</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          placeholder="最小"
+                          value={filters.girthMin}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, girthMin: e.target.value })}
+                          className="h-9 px-2 text-sm bg-white"
+                        />
+                        <span className="text-gray-400">~</span>
+                        <Input
+                          type="number"
+                          placeholder="最大"
+                          value={filters.girthMax}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, girthMax: e.target.value })}
+                          className="h-9 px-2 text-sm bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">管囲</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          placeholder="最小"
+                          value={filters.cannonMin}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, cannonMin: e.target.value })}
+                          className="h-9 px-2 text-sm bg-white"
+                        />
+                        <span className="text-gray-400">~</span>
+                        <Input
+                          type="number"
+                          placeholder="最大"
+                          value={filters.cannonMax}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, cannonMax: e.target.value })}
+                          className="h-9 px-2 text-sm bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 lg:col-span-4 flex justify-end gap-2 pt-2 border-t border-slate-200 mt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-500 font-bold hover:bg-slate-200"
+                    onClick={() => setFilters({
+                      sex: [],
+                      heightMin: '',
+                      heightMax: '',
+                      girthMin: '',
+                      girthMax: '',
+                      cannonMin: '',
+                      cannonMax: '',
+                      sire: '',
+                    })}
+                  >
+                    フィルターをクリア
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-500 font-medium">
+                該当件数: <span className="text-blue-600 font-bold">{filteredHorses.length}</span> 件
+              </p>
+
+              {selectedHorseIds.length > 0 && (
+                <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-200 animate-in zoom-in-95">
+                  <span className="text-xs font-bold text-indigo-700">
+                    <span className="text-lg mr-1">{selectedHorseIds.length}</span>頭 選択中
+                  </span>
+                  <div className="h-4 w-px bg-indigo-200 mx-1"></div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full h-8">
+                        一括アクション
+                        <ChevronDown className="ml-1 w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 font-bold">
+                      <DropdownMenuItem
+                        onClick={() => bulkUpdateMutation.mutate({ horseIds: selectedHorseIds, evaluation: '◎', isEliminated: false })}
+                        className="text-green-600 focus:text-green-700"
+                      >
+                        <Star className="mr-2 h-4 w-4" /> 評価 ◎ に設定
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => bulkUpdateMutation.mutate({ horseIds: selectedHorseIds, evaluation: '○', isEliminated: false })}
+                        className="text-blue-600 focus:text-blue-700"
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" /> 評価 ○ に設定
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => bulkUpdateMutation.mutate({ horseIds: selectedHorseIds, evaluation: '△', isEliminated: false })}
+                        className="text-slate-600 focus:text-slate-700"
+                      >
+                        <AlertCircle className="mr-2 h-4 w-4" /> 評価 △ に設定
+                      </DropdownMenuItem>
+                      <div className="h-px bg-slate-100 my-1"></div>
+                      <DropdownMenuItem
+                        onClick={() => bulkUpdateMutation.mutate({ horseIds: selectedHorseIds, evaluation: null, isEliminated: true })}
+                        className="text-red-600 focus:text-red-700"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> リストから除外
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-indigo-400 hover:text-indigo-600 rounded-full"
+                    onClick={() => setSelectedHorseIds([])}
+                  >
+                    ×
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -159,6 +440,19 @@ export default function Horses() {
               <table className="w-full text-left">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    <th className="px-6 py-4 w-12">
+                      <Checkbox
+                        checked={selectedHorseIds.length === filteredHorses.length && filteredHorses.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedHorseIds(filteredHorses.map((h: any) => h.id));
+                          } else {
+                            setSelectedHorseIds([]);
+                          }
+                        }}
+                        className="border-gray-300"
+                      />
+                    </th>
                     <th className="px-6 py-4">
                       <button
                         onClick={() => handleSort('lotNumber')}
@@ -236,8 +530,21 @@ export default function Horses() {
                     return (
                       <tr
                         key={horse.id}
-                        className="hover:bg-blue-50/50 transition-colors group"
+                        className={`hover:bg-blue-50/50 transition-colors group ${selectedHorseIds.includes(horse.id) ? 'bg-indigo-50/50' : ''}`}
                       >
+                        <td className="px-6 py-4">
+                          <Checkbox
+                            checked={selectedHorseIds.includes(horse.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedHorseIds([...selectedHorseIds, horse.id]);
+                              } else {
+                                setSelectedHorseIds(selectedHorseIds.filter((id: number) => id !== horse.id));
+                              }
+                            }}
+                            className="border-gray-200"
+                          />
+                        </td>
                         <td className="px-6 py-4">
                           <span className="text-2xl font-black text-gray-900">{horse.lotNumber}</span>
                         </td>
