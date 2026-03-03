@@ -6,6 +6,10 @@ node_modules
 .env.production
 .env.development
 
+# Environment variable backups
+.env.backup
+*.backup
+
 # Cache
 .cache/
 dist/
@@ -124,3 +128,4 @@ seed-sales.ts
 
 # Drizzle
 drizzle/meta/
+.env.backup
