@@ -4,24 +4,25 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 import AdminImport from "./pages/AdminImport";
 import Horses from "./pages/Horses";
 import HorseDetail from "./pages/HorseDetail";
 import MyPage from "./pages/MyPage";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/login"} component={Login} />
-      <Route path={"/admin/import"} component={AdminImport} />
-      <Route path={"/horses/:id"} component={HorseDetail} />
-      <Route path={"/horses"} component={Horses} />
-      <Route path={"/my-page"} component={MyPage} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/" component={Landing} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/login" component={Login} />
+      <Route path="/admin/import" component={AdminImport} />
+      <Route path="/horses/:id" component={HorseDetail} />
+      <Route path="/horses" component={Horses} />
+      <Route path="/my-page" component={MyPage} />
+      <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
