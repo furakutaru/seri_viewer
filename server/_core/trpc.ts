@@ -31,9 +31,17 @@ export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || ctx.user.role !== 'admin') {
+    if (!ctx.user) {
+      console.warn(`[SECURITY] 未認証ユーザーによる管理者APIアクセス試行`);
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+
+    if (ctx.user.role !== 'admin') {
+      console.warn(`[SECURITY] 管理者APIへの不正アクセス試行: ${ctx.user.email} (role: ${ctx.user.role})`);
       throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
+
+    console.log(`[SECURITY] 管理者APIアクセス確認: ${ctx.user.email}`);
 
     return next({
       ctx: {

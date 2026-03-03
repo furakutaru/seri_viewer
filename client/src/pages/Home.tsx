@@ -184,8 +184,8 @@ export default function Home() {
                       📥
                     </div>
                     <div>
-                      <div className="font-bold text-indigo-900">データ取り込み</div>
-                      <div className="text-xs text-indigo-400 font-medium tracking-tight">カタログURLから自動インポート</div>
+                      <div className="font-bold text-indigo-900">管理者メニュー</div>
+                      <div className="text-xs text-indigo-400 font-medium tracking-tight">データ取り込み・システム管理</div>
                     </div>
                   </div>
                 </Card>

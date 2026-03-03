@@ -6,8 +6,17 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from '@/lib/trpc';
 import { JbisImportForm } from '@/components/JbisImportForm';
+import { AdminRouteGuard } from '@/components/AdminRouteGuard';
 
 export default function AdminImport() {
+  return (
+    <AdminRouteGuard>
+      <AdminImportContent />
+    </AdminRouteGuard>
+  );
+}
+
+function AdminImportContent() {
   const [, setLocation] = useLocation();
   const [catalogUrl, setCatalogUrl] = useState('');
   const [pdfUrlsText, setPdfUrlsText] = useState('');
