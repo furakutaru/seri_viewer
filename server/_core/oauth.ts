@@ -21,7 +21,13 @@ export function registerOAuthRoutes(app: Express) {
 
     try {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      console.log("[OAuth] Token response:", tokenResponse);
+      
+      // Google OAuthは access_token フィールドを使用
+      const accessToken = (tokenResponse as any).access_token || tokenResponse.accessToken;
+      console.log("[OAuth] Using access token:", !!accessToken);
+      
+      const userInfo = await sdk.getUserInfo(accessToken);
 
       if (!userInfo.openId) {
         res.status(400).json({ error: "openId missing from user info" });
@@ -42,6 +48,7 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
+      
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
       res.redirect(302, "/");

@@ -14,7 +14,10 @@ export async function createContext(
   let user: User | null = null;
 
   try {
-    if (process.env.NODE_ENV === "development") {
+    // Check if we should bypass auth for development
+    const bypassDevAuth = process.env.BYPASS_DEV_AUTH === "true";
+    
+    if (process.env.NODE_ENV === "development" && bypassDevAuth) {
       // Bypass auth in development to allow local testing
       // Try to get from DB first, if fails, use a mock
       try {
@@ -39,6 +42,7 @@ export async function createContext(
         } as User;
       }
     } else {
+      // Use real authentication
       user = await sdk.authenticateRequest(opts.req);
     }
   } catch (error) {

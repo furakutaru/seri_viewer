@@ -122,7 +122,35 @@ class SDKServer {
     code: string,
     state: string
   ): Promise<ExchangeTokenResponse> {
-    return this.oauthService.getTokenByCode(code, state);
+    // Google OAuthトークン交換
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        code,
+        client_id: ENV.appId,
+        client_secret: ENV.googleClientSecret || "",
+        redirect_uri: atob(state),
+        grant_type: "authorization_code",
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error("[Google OAuth] Token exchange failed:", {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        clientId: ENV.appId,
+        redirectUri: atob(state),
+      });
+      throw new Error(`Google token exchange failed: ${errorText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    // セキュリティのためトークン情報はログに出力しない
+    return tokenData;
   }
 
   /**
@@ -131,17 +159,33 @@ class SDKServer {
    * const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
    */
   async getUserInfo(accessToken: string): Promise<GetUserInfoResponse> {
-    const data = await this.oauthService.getUserInfoByToken({
-      accessToken,
-    } as ExchangeTokenResponse);
-    const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null
-    );
+    // Google OAuthユーザー情報取得
+    const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[Google OAuth] User info failed:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
+      throw new Error(`Google user info failed: ${errorText}`);
+    }
+
+    const userData = await response.json();
+    // セキュリティのためユーザー情報はログに出力しない
+    
     return {
-      ...(data as any),
-      platform: loginMethod,
-      loginMethod,
+      openId: userData.id,
+      name: userData.name,
+      email: userData.email,
+      platform: "google",
+      loginMethod: "google",
     } as GetUserInfoResponse;
   }
 

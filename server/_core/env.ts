@@ -10,4 +10,5 @@ export const ENV = {
   googleSearchApiKey: process.env.GOOGLE_SEARCH_API_KEY ?? "",
   googleSearchCx: process.env.GOOGLE_SEARCH_CX ?? "",
   bingSearchApiKey: process.env.BING_SEARCH_API_KEY ?? "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
 };

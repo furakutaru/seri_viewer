@@ -36,6 +36,13 @@ export default function HorseDetail() {
     const targetLot = direction === 'prev' ? horse.lotNumber - 1 : horse.lotNumber + 1;
     if (targetLot < 1) return;
 
+    // Reset state immediately when navigating
+    setEvaluation(null);
+    setMemo('');
+    setIsEliminated(false);
+    setChecklistState({});
+    setNumericValues({});
+
     const targetHorse = await utils.horses.getByLotNumber.fetch({ lotNumber: targetLot, saleId: horse.saleId });
     if (targetHorse) {
       setLocation('/horses/' + targetHorse.id);
