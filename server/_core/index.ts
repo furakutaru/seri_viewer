@@ -99,6 +99,8 @@ if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
   startServer().catch(console.error);
 }
 
+export { app };
 export default app;
+
 
 
