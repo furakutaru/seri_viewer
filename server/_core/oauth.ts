@@ -20,20 +20,24 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
+      console.log("[OAuth] Code received, exchanging for token...");
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      console.log("[OAuth] Token response:", tokenResponse);
-      
-      // Google OAuthは access_token フィールドを使用
-      const accessToken = (tokenResponse as any).access_token || tokenResponse.accessToken;
-      console.log("[OAuth] Using access token:", !!accessToken);
-      
-      const userInfo = await sdk.getUserInfo(accessToken);
 
-      if (!userInfo.openId) {
-        res.status(400).json({ error: "openId missing from user info" });
-        return;
+      const accessToken = (tokenResponse as any).access_token || tokenResponse.accessToken;
+      if (!accessToken) {
+        console.error("[OAuth] Failed to get access token from response:", tokenResponse);
+        throw new Error("Access token missing");
       }
 
+      console.log("[OAuth] Fetching user info...");
+      const userInfo = await sdk.getUserInfo(accessToken);
+      console.log("[OAuth] User info obtained for:", userInfo.email);
+
+      if (!userInfo.openId) {
+        throw new Error("openId missing from user info");
+      }
+
+      console.log("[OAuth] Updating database user...");
       await db.upsertUser({
         openId: userInfo.openId,
         name: userInfo.name || null,
@@ -42,19 +46,30 @@ export function registerOAuthRoutes(app: Express) {
         lastSignedIn: new Date(),
       });
 
+      console.log("[OAuth] Creating session token...");
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
+      console.log("[OAuth] Success, redirecting to home.");
       res.redirect(302, "/");
-    } catch (error) {
-      console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
+    } catch (error: any) {
+      console.error("[OAuth] CRITICAL ERROR:", error.message);
+      if (error.stack) console.error(error.stack);
+      res.status(500).json({
+        error: "OAuth callback failed",
+        message: error.message,
+        env_check: {
+          has_app_id: !!process.env.VITE_APP_ID,
+          has_secret: !!process.env.GOOGLE_CLIENT_SECRET,
+          has_db: !!process.env.DATABASE_URL
+        }
+      });
     }
+
   });
 }
