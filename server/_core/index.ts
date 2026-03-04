@@ -31,9 +31,13 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 const app = express();
 
+// Trust proxy for secure cookies on Vercel/Render
+app.set("trust proxy", 1);
+
 /**
  * Common middleware and route registration
  */
+
 function configureApp(app: express.Express) {
   // Enable CORS
   app.use(
@@ -47,6 +51,7 @@ function configureApp(app: express.Express) {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  console.log("[Server] Configuring routes...");
   // OAuth & Mock OAuth
   registerOAuthRoutes(app);
   registerMockOAuthRoutes(app);
