@@ -31,27 +31,27 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 const app = express();
 
-async function setupApp() {
-  const server = createServer(app);
-
+/**
+ * Common middleware and route registration
+ */
+function configureApp(app: express.Express) {
   // Enable CORS
   app.use(
     cors({
-      origin: true, // Allow all origins in production, or specify Vercel URL
+      origin: true,
       credentials: true,
     })
   );
 
-  // Configure body parser with larger size limit for file uploads
+  // Body parser
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // OAuth callback under /api/oauth/callback
+  // OAuth & Mock OAuth
   registerOAuthRoutes(app);
-  // Mock OAuth for development
   registerMockOAuthRoutes(app);
 
-  // tRPC API
+  // tRPC
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -60,31 +60,45 @@ async function setupApp() {
     })
   );
 
-  // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
-  } else if (!process.env.VERCEL) {
-    serveStatic(app);
+  // Static files (only for non-Vercel environments)
+  if (!process.env.VERCEL) {
+    if (process.env.NODE_ENV === "development") {
+      // In development, setupVite is handled in startServer to get the server instance
+    } else {
+      serveStatic(app);
+    }
   }
-
-  return server;
 }
 
-// Start server if not running on Vercel
-if (!process.env.VERCEL) {
-  setupApp().then(async (server) => {
-    const preferredPort = parseInt(process.env.PORT || "3000");
-    const port = await findAvailablePort(preferredPort);
+// Configure immediately
+configureApp(app);
 
-    if (port !== preferredPort) {
-      console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-    }
+/**
+ * Start the server (for local development and traditional VPS)
+ */
+async function startServer() {
+  const preferredPort = parseInt(process.env.PORT || "3000");
+  const port = await findAvailablePort(preferredPort);
+  const server = createServer(app);
 
-    server.listen(port, () => {
-      console.log(`Server running on http://localhost:${port}/`);
-    });
-  }).catch(console.error);
+  if (process.env.NODE_ENV === "development") {
+    await setupVite(app, server);
+  }
+
+  if (port !== preferredPort) {
+    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  }
+
+  server.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}/`);
+  });
+}
+
+// Run only if not on Vercel
+if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
+  startServer().catch(console.error);
 }
 
 export default app;
+
 
