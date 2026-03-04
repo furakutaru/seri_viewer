@@ -151,7 +151,16 @@ export async function parseCatalog(catalogUrl: string) {
       let damName = '';
 
       // Find the photo link with uma-id that contains this lot number
-      const photoLinkForName = $(`a[uma-id*="${lotNumber}"]`).first();
+      // Find the photo link within the current row to get the uma-name accurately
+      // Use both local row search and No.X pattern to be extra safe
+      let photoLinkForName = $(row).find(`a[uma-name*="No.${lotNumber} "]`).first();
+      if (photoLinkForName.length === 0) {
+        photoLinkForName = $(row).find(`a[uma-name*="No.${lotNumber}　"]`).first();
+      }
+      if (photoLinkForName.length === 0) {
+        photoLinkForName = $(row).find('a[uma-name]').first();
+      }
+
       const umaName = photoLinkForName.attr('uma-name');
 
       if (umaName) {
@@ -167,38 +176,27 @@ export async function parseCatalog(catalogUrl: string) {
       if (!sireName) sireName = cleanText($(cells[7]).text());
       if (!damName) damName = cleanText($(cells[8]).text());
 
-      // Fix duplicate names - handle both exact duplicates and character variations
-      if (sireName && sireName.includes(' ')) {
-        const parts = sireName.split(' ');
-        if (parts.length === 2) {
-          // Check for exact duplicates
-          if (parts[0] === parts[1]) {
-            sireName = parts[0];
-          }
-          // Check for character variations (ウァ vs ヴ, etc.)
-          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') ===
-            parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
-            // Use the version with ヴ (second part is usually the correct one)
-            sireName = parts[1];
-          }
-        }
-      }
+      // Fix duplicate names (e.g. "SIRE NAME SIRE NAME")
+      const fixDuplicate = (name: string) => {
+        if (!name) return name;
+        const parts = name.split(' ');
+        if (parts.length >= 2 && parts.length % 2 === 0) {
+          const mid = parts.length / 2;
+          const firstHalf = parts.slice(0, mid).join(' ');
+          const secondHalf = parts.slice(mid).join(' ');
 
-      if (damName && damName.includes(' ')) {
-        const parts = damName.split(' ');
-        if (parts.length === 2) {
-          // Check for exact duplicates
-          if (parts[0] === parts[1]) {
-            damName = parts[0];
-          }
-          // Check for character variations (ウァ vs ヴ, etc.)
-          else if (parts[0].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ') ===
-            parts[1].replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ')) {
-            // Use the version with ヴ (second part is usually the correct one)
-            damName = parts[1];
+          const normalize = (s: string) => s.replace(/ウァ/g, 'ヴァ').replace(/ウル/g, 'ヴル').replace(/ウィ/g, 'ヴィ').replace(/ウェ/g, 'ヴェ').replace(/ウォ/g, 'ヴォ').replace(/ルウァ/g, 'ルヴァ').replace(/スワーウ/g, 'スワーヴ');
+
+          if (firstHalf === secondHalf || normalize(firstHalf) === normalize(secondHalf)) {
+            return secondHalf;
           }
         }
-      }
+        return name;
+      };
+
+      sireName = fixDuplicate(sireName);
+      damName = fixDuplicate(damName);
+
 
       const rawSex = cleanText($(cells[4]).text());
       let sex: "牡" | "牝" | "セン" | null = null;
