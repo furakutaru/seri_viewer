@@ -13,6 +13,10 @@ import {
   bulkSaveUserCheck,
   getPopularityStats,
   getAllSales,
+  createSale,
+  updateSale,
+  updateSaleStatus,
+  deleteSale,
   getUserCheckItems,
   createUserCheckItem,
   updateUserCheckItem,
@@ -46,11 +50,11 @@ export const appRouter = router({
   }),
 
   horses: router({
-    getAll: publicProcedure.query(async () => {
-      return await getAllHorses();
+    getAll: publicProcedure.query(async ({ ctx }) => {
+      return await getAllHorses(ctx.user?.role);
     }),
     getAllWithStats: protectedProcedure.query(async ({ ctx }) => {
-      return await getAllHorsesForUser(ctx.user.id);
+      return await getAllHorsesForUser(ctx.user.id, ctx.user.role);
     }),
     getById: publicProcedure
       .input(z.number())
@@ -257,21 +261,22 @@ export const appRouter = router({
   }),
 
   sales: router({
-    getAll: publicProcedure.query(async () => {
-      return await getAllSales();
+    getAll: publicProcedure.query(async ({ ctx }) => {
+      return await getAllSales(ctx.user?.role);
     }),
   }),
 
   admin: router({
     importData: publicProcedure
       .input(z.object({
+        saleId: z.number(),
         catalogUrl: z.string().url(),
         pdfUrls: z.array(z.string().url()),
       }))
       .mutation(async ({ input }) => {
         try {
           const result = await importCatalogAndMeasurements(
-            1,
+            input.saleId,
             input.catalogUrl,
             input.pdfUrls
           );
@@ -279,6 +284,54 @@ export const appRouter = router({
         } catch (error: any) {
           throw new Error(`Import failed: ${error.message}`);
         }
+      }),
+
+    // セリの新規作成
+    createSale: protectedProcedure
+      .input(z.object({
+        saleCode: z.string().min(1).max(32),
+        saleName: z.string().min(1).max(256),
+        saleDate: z.date(),
+        status: z.enum(["draft", "published", "hidden"]).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        return await createSale(input);
+      }),
+
+    // セリ情報の更新
+    updateSale: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        saleCode: z.string().min(1).max(32).optional(),
+        saleName: z.string().min(1).max(256).optional(),
+        saleDate: z.date().optional(),
+        catalogUrl: z.string().url().optional(),
+        status: z.enum(["draft", "published", "hidden"]).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        const { id, ...data } = input;
+        return await updateSale(id, data);
+      }),
+
+    // セリのステータス更新
+    updateSaleStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["draft", "published", "hidden"]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        return await updateSaleStatus(input.id, input.status);
+      }),
+
+    // セリの削除
+    deleteSale: protectedProcedure
+      .input(z.number())
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        return await deleteSale(input);
       }),
 
     // JBISセールページからURLをインポート

@@ -92,7 +92,7 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getAllHorses() {
+export async function getAllHorses(role?: string) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get horses: database not available");
@@ -100,15 +100,22 @@ export async function getAllHorses() {
   }
 
   try {
-    const result = await db.select().from(horses);
-    return result;
+    let query = db.select({ horse: horses }).from(horses).innerJoin(sales, eq(horses.saleId, sales.id));
+
+    if (role !== 'admin') {
+      // @ts-ignore
+      query = query.where(eq(sales.status, 'published'));
+    }
+
+    const result = await query;
+    return result.map(r => r.horse);
   } catch (error) {
     console.error("[Database] Failed to get horses:", error);
     return [];
   }
 }
 
-export async function getAllSales() {
+export async function getAllSales(role?: string) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get sales: database not available");
@@ -116,7 +123,15 @@ export async function getAllSales() {
   }
 
   try {
-    const result = await db.select().from(sales).orderBy(sales.saleDate);
+    let query = db.select().from(sales);
+
+    // For normal users, only show published sales
+    if (role !== 'admin') {
+      // @ts-ignore - drizzle type checking occasionally trips on enum/text comparison
+      query = query.where(eq(sales.status, 'published'));
+    }
+
+    const result = await query.orderBy(sales.saleDate);
     return result;
   } catch (error) {
     console.error("[Database] Failed to get sales:", error);
@@ -124,21 +139,90 @@ export async function getAllSales() {
   }
 }
 
-export async function getAllHorsesForUser(userId: number) {
+export async function createSale(data: {
+  saleCode: string;
+  saleName: string;
+  saleDate: Date;
+  status?: "draft" | "published" | "hidden";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.insert(sales).values({
+      ...data,
+      status: data.status || "draft",
+    }).returning();
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to create sale:", error);
+    throw error;
+  }
+}
+
+export async function updateSale(id: number, data: Partial<{
+  saleCode: string;
+  saleName: string;
+  saleDate: Date;
+  catalogUrl: string;
+  status: "draft" | "published" | "hidden";
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.update(sales)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(sales.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to update sale:", error);
+    throw error;
+  }
+}
+
+export async function updateSaleStatus(id: number, status: "draft" | "published" | "hidden") {
+  return await updateSale(id, { status });
+}
+
+export async function deleteSale(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    // Delete horses first due to foreign key constraints (if any, though not explicit in drizzle schema)
+    await db.delete(horses).where(eq(horses.saleId, id));
+    await db.delete(sales).where(eq(sales.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete sale:", error);
+    throw error;
+  }
+}
+
+export async function getAllHorsesForUser(userId: number, role?: string) {
   const db = await getDb();
   if (!db) return [];
 
   try {
-    // Get all horses with sales info
-    const allHorses = await db
+    // Get all horses with sales info, filtered by status
+    let baseQuery = db
       .select({
         horse: horses,
         sale: sales,
       })
       .from(horses)
-      .leftJoin(sales, eq(horses.saleId, sales.id));
+      .innerJoin(sales, eq(horses.saleId, sales.id));
 
-    // Get only current user's checks - much more efficient!
+    if (role !== 'admin') {
+      // @ts-ignore
+      baseQuery = baseQuery.where(eq(sales.status, 'published'));
+    }
+
+    const allHorses = await baseQuery;
+
+    // Get only current user's checks
     const myChecks = await db
       .select()
       .from(userChecks)

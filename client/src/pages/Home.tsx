@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { Header } from "@/components/Header";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -11,55 +13,14 @@ export default function Home() {
   // Fetch all sales info
   const { data: sales, isLoading } = trpc.sales.getAll.useQuery();
 
+  const displaySales = useMemo(() => {
+    if (!sales) return [];
+    return sales.filter((s: any) => s.status !== 'hidden');
+  }, [sales]);
+
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ナビゲーションバー */}
-      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-2xl animate-pulse">
-              🐴
-            </div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tighter">
-              SERI市<span className="text-blue-600">VIEWER</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-6">
-            {isAuthenticated && user ? (
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => setLocation('/my-page')}
-                  variant="ghost"
-                  className="text-indigo-600 hover:bg-indigo-50 font-bold"
-                >
-                  My Page
-                </Button>
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Signed in as</span>
-                    <span className="text-sm font-bold text-slate-700">{user.name}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={logout}
-                    className="text-slate-500 hover:text-red-600 hover:bg-red-50 font-bold"
-                  >
-                    Logout
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button
-                onClick={() => setLocation('/login')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
-              >
-                Login
-              </Button>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       {/* ヒーローセクション */}
       <div className="relative overflow-hidden bg-slate-900 py-24 sm:py-32">
@@ -103,9 +64,9 @@ export default function Home() {
                   <Card key={i} className="p-6 h-48 animate-pulse bg-slate-100 border-none" />
                 ))}
               </div>
-            ) : sales && sales.length > 0 ? (
+            ) : displaySales && displaySales.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {sales.map((sale: any) => (
+                {displaySales.map((sale: any) => (
                   <Card key={sale.id} className="p-6 border-none shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all group overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150" />
                     <div className="relative">
@@ -119,6 +80,11 @@ export default function Home() {
                         <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500 uppercase">
                           Location: {sale.location || 'HBA'}
                         </span>
+                        {sale.status === 'draft' && (
+                          <span className="px-3 py-1 bg-amber-100 border border-amber-200 rounded-full text-[10px] font-black text-amber-700">
+                            PREVIEW
+                          </span>
+                        )}
                       </div>
                       <Link href={`/horses?saleId=${sale.id}`}>
                         <Button className="w-full bg-slate-900 hover:bg-blue-600 text-white font-bold transition-all">
@@ -181,11 +147,11 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm">
-                      📥
+                      ⚙️
                     </div>
                     <div>
-                      <div className="font-bold text-indigo-900">管理者メニュー</div>
-                      <div className="text-xs text-indigo-400 font-medium tracking-tight">データ取り込み・システム管理</div>
+                      <div className="font-bold text-indigo-900">管理メニュー</div>
+                      <div className="text-xs text-indigo-400 font-medium tracking-tight">セリ管理・配信・インポート設定</div>
                     </div>
                   </div>
                 </Card>

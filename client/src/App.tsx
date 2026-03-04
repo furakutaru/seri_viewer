@@ -4,9 +4,8 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Landing from "./pages/Landing";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import AdminImport from "./pages/AdminImport";
 import Horses from "./pages/Horses";
 import HorseDetail from "./pages/HorseDetail";
@@ -15,8 +14,7 @@ import MyPage from "./pages/MyPage";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/admin/import" component={AdminImport} />
       <Route path="/horses/:id" component={HorseDetail} />

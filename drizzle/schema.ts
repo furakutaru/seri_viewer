@@ -20,6 +20,7 @@ export type InsertUser = typeof users.$inferInsert;
 
 export const sexEnum = pgEnum("sex", ["牡", "牝", "セン"]);
 export const evaluationEnum = pgEnum("evaluation", ["◎", "○", "△"]);
+export const saleStatusEnum = pgEnum("sale_status", ["draft", "published", "hidden"]);
 
 /**
  * セリ情報テーブル
@@ -30,6 +31,7 @@ export const sales = pgTable("sales", {
   saleName: varchar("saleName", { length: 256 }).notNull(),
   saleDate: timestamp("saleDate").notNull(),
   catalogUrl: varchar("catalogUrl", { length: 512 }),
+  status: saleStatusEnum("status").default("draft").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

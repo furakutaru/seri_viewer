@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc';
+import { Header } from '@/components/Header';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -23,11 +24,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from '@/components/ui/badge';
 
 export default function Horses() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, loading } = useAuth();
   const utils = trpc.useUtils();
+
+  const queryParams = new URLSearchParams(window.location.search);
+  const initialSaleId = queryParams.get('saleId') ? parseInt(queryParams.get('saleId')!) : null;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'lotNumber' | 'birthDate' | 'popularity' | 'height' | 'girth' | 'cannon'>('lotNumber');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -42,6 +48,7 @@ export default function Horses() {
     cannonMin: '',
     cannonMax: '',
     sire: '',
+    saleId: initialSaleId,
   });
 
   // Bulk selection state
@@ -75,6 +82,10 @@ export default function Horses() {
     if (!horses) return [];
 
     let filtered = horses.filter((horse: any) => {
+      // 非表示（アーカイブ）のセリに紐づく馬は、特定のsaleId指定がない限り管理者でも表示しない
+      const isSpecificSaleRequest = filters.saleId && horse.saleId === filters.saleId;
+      if (horse.sale?.status === 'hidden' && !isSpecificSaleRequest) return false;
+
       // Basic elimination check (always exclude eliminated horses from this list)
       if (horse.userCheck?.isEliminated) return false;
 
@@ -109,6 +120,9 @@ export default function Horses() {
 
       // Sire filter (text match)
       if (filters.sire && !horse.sireName?.toLowerCase().includes(filters.sire.toLowerCase())) return false;
+
+      // Sale filter
+      if (filters.saleId && horse.saleId !== filters.saleId) return false;
 
       return true;
     });
@@ -173,28 +187,25 @@ export default function Horses() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-8">
+      <Header />
+      <div className="max-w-7xl mx-auto px-8 pt-8">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">上場馬一覧</h1>
-            <p className="text-gray-600">登録されている馬の一覧を表示しています</p>
-          </div>
-          <div className="flex gap-4">
-            <Button
-              onClick={() => setLocation('/my-page')}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
-            >
-              マイページ (評価一覧)
-            </Button>
-            <Button
-              onClick={() => setLocation('/')}
-              variant="outline"
-              className="text-gray-700 border-gray-300 hover:bg-gray-50 font-bold"
-            >
-              ホームに戻る
-            </Button>
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-4xl font-bold text-gray-900">上場馬一覧</h1>
+              {filters.saleId && horses?.find(h => h.saleId === filters.saleId)?.sale?.status === 'draft' && (
+                <Badge className="bg-amber-100 text-amber-700 border-amber-200 font-black shadow-none border">
+                  プレビュー中
+                </Badge>
+              )}
+            </div>
+            <p className="text-gray-600">
+              {filters.saleId && horses?.find(h => h.saleId === filters.saleId)?.sale
+                ? `${horses?.find(h => h.saleId === filters.saleId)?.sale?.saleName} の情報を表示中`
+                : '登録されている馬の一覧を表示しています'}
+            </p>
           </div>
         </div>
 
@@ -353,6 +364,7 @@ export default function Horses() {
                       cannonMin: '',
                       cannonMax: '',
                       sire: '',
+                      saleId: null,
                     })}
                   >
                     フィルターをクリア
