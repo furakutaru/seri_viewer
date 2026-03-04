@@ -1,4 +1,4 @@
-import { ForbiddenError } from "@shared/_core/errors";
+import { ForbiddenError } from "../../shared/_core/errors";
 import type { TrpcContext } from "./context";
 
 /**

@@ -1,5 +1,5 @@
-import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import { ForbiddenError } from "@shared/_core/errors";
+import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const";
+import { ForbiddenError } from "../../shared/_core/errors";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
@@ -8,12 +8,12 @@ import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
 import type {
-  ExchangeTokenRequest,
   ExchangeTokenResponse,
   GetUserInfoResponse,
   GetUserInfoWithJwtRequest,
   GetUserInfoWithJwtResponse,
 } from "./types/manusTypes";
+
 // Utility function
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -24,143 +24,70 @@ export type SessionPayload = {
   name: string;
 };
 
-const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
-const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
 
-class OAuthService {
-  constructor(private client: ReturnType<typeof axios.create>) {
-    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
-      console.log(
-        "[OAuth] INFO: OAUTH_SERVER_URL is not configured (optional for Google OAuth)"
-      );
-    }
+class SDKServer {
+  private client: AxiosInstance;
 
+  constructor() {
+    this.client = axios.create({
+      baseURL: ENV.oAuthServerUrl || "https://accounts.google.com",
+      timeout: AXIOS_TIMEOUT_MS,
+    });
+    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl || "https://accounts.google.com");
   }
 
   private decodeState(state: string): string {
-    const redirectUri = atob(state);
-    return redirectUri;
-  }
-
-  async getTokenByCode(
-    code: string,
-    state: string
-  ): Promise<ExchangeTokenResponse> {
-    const payload: ExchangeTokenRequest = {
-      clientId: ENV.appId,
-      grantType: "authorization_code",
-      code,
-      redirectUri: this.decodeState(state),
-    };
-
-    const { data } = await this.client.post<ExchangeTokenResponse>(
-      EXCHANGE_TOKEN_PATH,
-      payload
-    );
-
-    return data;
-  }
-
-  async getUserInfoByToken(
-    token: ExchangeTokenResponse
-  ): Promise<GetUserInfoResponse> {
-    const { data } = await this.client.post<GetUserInfoResponse>(
-      GET_USER_INFO_PATH,
-      {
-        accessToken: token.accessToken,
-      }
-    );
-
-    return data;
-  }
-}
-
-const createOAuthHttpClient = (): AxiosInstance =>
-  axios.create({
-    baseURL: ENV.oAuthServerUrl,
-    timeout: AXIOS_TIMEOUT_MS,
-  });
-
-class SDKServer {
-  private readonly client: AxiosInstance;
-  private readonly oauthService: OAuthService;
-
-  constructor(client: AxiosInstance = createOAuthHttpClient()) {
-    this.client = client;
-    this.oauthService = new OAuthService(this.client);
-  }
-
-  private deriveLoginMethod(
-    platforms: unknown,
-    fallback: string | null | undefined
-  ): string | null {
-    if (fallback && fallback.length > 0) return fallback;
-    if (!Array.isArray(platforms) || platforms.length === 0) return null;
-    const set = new Set<string>(
-      platforms.filter((p): p is string => typeof p === "string")
-    );
-    if (set.has("REGISTERED_PLATFORM_EMAIL")) return "email";
-    if (set.has("REGISTERED_PLATFORM_GOOGLE")) return "google";
-    if (set.has("REGISTERED_PLATFORM_APPLE")) return "apple";
-    if (
-      set.has("REGISTERED_PLATFORM_MICROSOFT") ||
-      set.has("REGISTERED_PLATFORM_AZURE")
-    )
-      return "microsoft";
-    if (set.has("REGISTERED_PLATFORM_GITHUB")) return "github";
-    const first = Array.from(set)[0];
-    return first ? first.toLowerCase() : null;
+    try {
+      // Use Buffer for reliable base64 decoding in Node.js
+      return Buffer.from(state, 'base64').toString('utf-8');
+    } catch (e) {
+      console.warn("[OAuth] Failed to decode state as base64, using as-is");
+      return state;
+    }
   }
 
   /**
-   * Exchange OAuth authorization code for access token
-   * @example
-   * const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+   * Exchange OAuth authorization code for access token (Google)
    */
   async exchangeCodeForToken(
     code: string,
     state: string
   ): Promise<ExchangeTokenResponse> {
-    // Google OAuthトークン交換
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    const redirectUri = this.decodeState(state);
+
+    const params = new URLSearchParams({
+      code,
+      client_id: ENV.appId,
+      client_secret: ENV.googleClientSecret || "",
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+    });
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        code,
-        client_id: ENV.appId,
-        client_secret: ENV.googleClientSecret || "",
-        redirect_uri: atob(state),
-        grant_type: "authorization_code",
-      }),
+      body: params.toString(),
     });
 
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
+    if (!response.ok) {
+      const errorText = await response.text();
       console.error("[Google OAuth] Token exchange failed:", {
-        status: tokenResponse.status,
-        statusText: tokenResponse.statusText,
-        clientId: ENV.appId,
-        redirectUri: atob(state),
+        status: response.status,
+        error: errorText,
       });
       throw new Error(`Google token exchange failed: ${errorText}`);
     }
 
-    const tokenData = await tokenResponse.json();
-    // セキュリティのためトークン情報はログに出力しない
-    return tokenData;
+    return await response.json();
   }
 
   /**
-   * Get user information using access token
-   * @example
-   * const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+   * Get user information using access token (Google)
    */
   async getUserInfo(accessToken: string): Promise<GetUserInfoResponse> {
-    // Google OAuthユーザー情報取得
     const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       method: "GET",
       headers: {
@@ -170,16 +97,10 @@ class SDKServer {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Google OAuth] User info failed:", {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-      });
       throw new Error(`Google user info failed: ${errorText}`);
     }
 
     const userData = await response.json();
-    // セキュリティのためユーザー情報はログに出力しない
 
     return {
       openId: userData.id,
@@ -194,7 +115,6 @@ class SDKServer {
     if (!cookieHeader) {
       return new Map<string, string>();
     }
-
     const parsed = parseCookieHeader(cookieHeader);
     return new Map(Object.entries(parsed));
   }
@@ -204,28 +124,9 @@ class SDKServer {
     return new TextEncoder().encode(secret);
   }
 
-  /**
-   * Create a session token for a Manus user openId
-   * @example
-   * const sessionToken = await sdk.createSessionToken(userInfo.openId);
-   */
   async createSessionToken(
     openId: string,
     options: { expiresInMs?: number; name?: string } = {}
-  ): Promise<string> {
-    return this.signSession(
-      {
-        openId,
-        appId: ENV.appId,
-        name: options.name || "",
-      },
-      options
-    );
-  }
-
-  async signSession(
-    payload: SessionPayload,
-    options: { expiresInMs?: number } = {}
   ): Promise<string> {
     const issuedAt = Date.now();
     const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
@@ -233,9 +134,9 @@ class SDKServer {
     const secretKey = this.getSessionSecret();
 
     return new SignJWT({
-      openId: payload.openId,
-      appId: payload.appId,
-      name: payload.name,
+      openId,
+      appId: ENV.appId,
+      name: options.name || "",
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expirationSeconds)
@@ -245,10 +146,7 @@ class SDKServer {
   async verifySession(
     cookieValue: string | undefined | null
   ): Promise<{ openId: string; appId: string; name: string } | null> {
-    if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
-      return null;
-    }
+    if (!cookieValue) return null;
 
     try {
       const secretKey = this.getSessionSecret();
@@ -262,17 +160,11 @@ class SDKServer {
         !isNonEmptyString(appId) ||
         !isNonEmptyString(name)
       ) {
-        console.warn("[Auth] Session payload missing required fields");
         return null;
       }
 
-      return {
-        openId,
-        appId,
-        name,
-      };
+      return { openId, appId, name };
     } catch (error) {
-      console.warn("[Auth] Session verification failed", String(error));
       return null;
     }
   }
@@ -280,65 +172,31 @@ class SDKServer {
   async getUserInfoWithJwt(
     jwtToken: string
   ): Promise<GetUserInfoWithJwtResponse> {
-    const payload: GetUserInfoWithJwtRequest = {
-      jwtToken,
-      projectId: ENV.appId,
-    };
-
+    // This is a compatibility layer for existing code that might use JWT directly
     const { data } = await this.client.post<GetUserInfoWithJwtResponse>(
       GET_USER_INFO_WITH_JWT_PATH,
-      payload
+      { jwtToken, projectId: ENV.appId }
     );
-
-    const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null
-    );
-    return {
-      ...(data as any),
-      platform: loginMethod,
-      loginMethod,
-    } as GetUserInfoWithJwtResponse;
+    return data;
   }
 
   async authenticateRequest(req: Request): Promise<User | null> {
-    // Regular authentication flow
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
 
-    if (!sessionCookie) {
-      return null;
-    }
+    if (!sessionCookie) return null;
 
     const session = await this.verifySession(sessionCookie);
-
-    if (!session) {
-      return null;
-    }
+    if (!session) return null;
 
     const sessionUserId = session.openId;
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
-    // If user not in DB, sync from OAuth server automatically
     if (!user) {
-      try {
-        const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        await db.upsertUser({
-          openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-          lastSignedIn: signedInAt,
-        });
-        user = await db.getUserByOpenId(userInfo.openId);
-      } catch (error) {
-        console.error("[Auth] Failed to sync user from OAuth:", error);
-        return null;
-      }
-    }
-
-    if (!user) {
+      // If user not in DB, sync from OAuth (if applicable)
+      // For now, if verifySession passed, we treat the session as valid
+      // In production, we'd want to ensure the user exists in our DB
       return null;
     }
 
@@ -349,7 +207,6 @@ class SDKServer {
 
     return user;
   }
-
 }
 
 export const sdk = new SDKServer();
