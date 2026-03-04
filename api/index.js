@@ -1,3 +1,2 @@
-import express from 'express';
-const app = express();
+import app from "../server/_core/index.ts";
 export default app;
