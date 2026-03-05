@@ -118,6 +118,72 @@ export class JbisHorseLinkerService {
     }
   }
 
+  // バッチ処理でJBIS URLを紐付け
+  async linkJbisUrlsToHorsesBatch(horseData: JbisHorseData[], batchSize: number = 100, startFrom: number = 1): Promise<{ 
+    totalProcessed: number; 
+    batches: Array<{ batchNumber: number; processed: number; updated: number; notFound: number; errors: string[] }>;
+    summary: { updated: number; notFound: number; sireUpdated: number; damUpdated: number; errors: string[] }
+  }> {
+    const totalBatches = Math.ceil(horseData.length / batchSize);
+    const results = [];
+    let summary = { updated: 0, notFound: 0, sireUpdated: 0, damUpdated: 0, errors: [] as string[] };
+
+    console.log(`[JbisLinker] Starting batch processing: ${horseData.length} horses, ${totalBatches} batches, starting from ${startFrom}`);
+
+    for (let i = 0; i < totalBatches; i++) {
+      const batchStart = i * batchSize;
+      const batchEnd = Math.min(batchStart + batchSize, horseData.length);
+      const batchData = horseData.slice(batchStart, batchEnd);
+      const batchNumber = startFrom + i;
+
+      console.log(`[JbisLinker] Processing batch ${batchNumber}/${totalBatches + startFrom - 1} (${batchData.length} horses)`);
+
+      try {
+        const batchResult = await this.linkJbisUrlsToHorses(batchData);
+        
+        results.push({
+          batchNumber,
+          processed: batchData.length,
+          updated: batchResult.updated,
+          notFound: batchResult.notFound,
+          errors: batchResult.errors
+        });
+
+        // 結果を集計
+        summary.updated += batchResult.updated;
+        summary.notFound += batchResult.notFound;
+        summary.sireUpdated += batchResult.sireUpdated;
+        summary.damUpdated += batchResult.damUpdated;
+        summary.errors.push(...batchResult.errors);
+
+        console.log(`[JbisLinker] Batch ${batchNumber} completed: ${batchResult.updated} updated, ${batchResult.notFound} not found`);
+
+      } catch (error) {
+        const errorMsg = `Batch ${batchNumber} failed: ${error}`;
+        console.error(`[JbisLinker] ${errorMsg}`);
+        
+        results.push({
+          batchNumber,
+          processed: batchData.length,
+          updated: 0,
+          notFound: batchData.length,
+          errors: [errorMsg]
+        });
+
+        summary.errors.push(errorMsg);
+        summary.notFound += batchData.length;
+      }
+    }
+
+    console.log(`[JbisLinker] Batch processing completed: ${summary.updated} total updated, ${summary.notFound} total not found`);
+
+    return {
+      totalProcessed: horseData.length,
+      batches: results,
+      summary
+    };
+  }
+
   // 既存の馬にJBIS URLがあるかチェック
   async checkExistingJbisUrls(): Promise<{ total: number; withJbisUrl: number; withoutJbisUrl: number }> {
     const db = await getDb();

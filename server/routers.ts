@@ -372,6 +372,60 @@ export const appRouter = router({
           throw new Error(`JBIS status check failed: ${error.message}`);
         }
       }),
+
+    // バッチ処理でJBIS URLを紐付け
+    importJbisUrlsBatch: publicProcedure
+      .input(z.object({
+        saleUrl: z.string().url(),
+        batchSize: z.number().min(10).max(200).default(100),
+        startFrom: z.number().min(1).default(1),
+        endAt: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          console.log(`[API] Starting batch JBIS import: ${input.saleUrl}, batch size: ${input.batchSize}, start from: ${input.startFrom}`);
+          
+          // JBISデータを取得
+          const { jbisScraperService } = await import('./_core/jbisScraper');
+          const horseData = await jbisScraperService.scrapeSalePage(input.saleUrl);
+          
+          // 指定範囲でデータをフィルタリング
+          let filteredData = horseData;
+          if (input.startFrom > 1 || input.endAt) {
+            filteredData = horseData.filter((horse: any) => {
+              const lotNumber = parseInt(horse.horseName);
+              if (isNaN(lotNumber)) return false;
+              
+              const inRange = lotNumber >= input.startFrom && (!input.endAt || lotNumber <= input.endAt);
+              return inRange;
+            });
+            
+            console.log(`[API] Filtered to ${filteredData.length} horses (lot ${input.startFrom}${input.endAt ? `-${input.endAt}` : '+'})`);
+          }
+          
+          // バッチ処理を実行
+          const result = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(
+            filteredData, 
+            input.batchSize, 
+            Math.ceil(input.startFrom / input.batchSize)
+          );
+          
+          return {
+            success: true,
+            ...result,
+            input: {
+              totalHorses: horseData.length,
+              filteredHorses: filteredData.length,
+              batchSize: input.batchSize,
+              startFrom: input.startFrom,
+              endAt: input.endAt
+            }
+          };
+        } catch (error: any) {
+          console.error('[API] Batch JBIS import failed:', error);
+          throw new Error(`Batch JBIS import failed: ${error.message}`);
+        }
+      }),
   }),
 });
 
