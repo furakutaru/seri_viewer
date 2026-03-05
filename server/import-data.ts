@@ -330,42 +330,34 @@ export async function parsePdfMeasurements(pdfUrl: string) {
 export function parseMeasurementText(text: string) {
   const measurements: any[] = [];
 
-  const lines = text.split('\n');
+  // pdf-parseではレイアウトが崩れ、数字が連結されることが多いため
+  // 数値の範囲（体高は100番台など）を利用して抽出を試みる
+  // 1群: 上場番号 (1-4桁)
+  // 2群: 欠場 または 測尺データ
+  // 3-5群: 測尺データ（体高=1xx, 胸囲=xxx, 管囲=xx.x または xx）
+  const pattern = /(\d{1,4})\s*(欠場|(1\d{2})\s*(\d{3})\s*(\d{2}(?:\.\d)?))/g;
 
-  // 各行から上場番号と測尺データを抽出 (複数カラムに対応)
-  // パターン: "  1   156   183   21.0" または "  1   欠場"
-  // 正規表現: 
-  //   1群: 上場番号（1-4桁）
-  //   2群: 「欠場」または「体高 胸囲 管囲」（各数値の間にスペース）
-  // グローバル属性(g)を付けて、1行に複数カラムある場合も全て抽出する
-  const pattern = /(\d{1,4})\s+(欠場|\d{2,3}\s+\d{2,3}\s+\d{1,2}(?:\.\d+)?)/g;
+  const matches = Array.from(text.matchAll(pattern));
 
-  for (const line of lines) {
-    const matches = Array.from(line.matchAll(pattern));
+  for (const match of matches) {
+    const lotNumber = parseInt(match[1]);
 
-    for (const match of matches) {
-      const lotNumber = parseInt(match[1]);
-
-      if (match[2] === '欠場') {
-        measurements.push({
-          lotNumber,
-          height: null,
-          girth: null,
-          cannon: null,
-          status: '欠場',
-        });
-      } else {
-        const values = match[2].trim().split(/\s+/);
-        if (values.length >= 3) {
-          measurements.push({
-            lotNumber,
-            height: parseFloat(values[0]),
-            girth: parseFloat(values[1]),
-            cannon: parseFloat(values[2]),
-            status: null,
-          });
-        }
-      }
+    if (match[2] === '欠場') {
+      measurements.push({
+        lotNumber,
+        height: null,
+        girth: null,
+        cannon: null,
+        status: '欠場',
+      });
+    } else {
+      measurements.push({
+        lotNumber,
+        height: parseFloat(match[3]),
+        girth: parseFloat(match[4]),
+        cannon: parseFloat(match[5]),
+        status: null,
+      });
     }
   }
 

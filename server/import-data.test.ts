@@ -69,6 +69,24 @@ describe('Import Data Functions', () => {
       expect(measurements[5].lotNumber).toBe(703);
     });
 
+    it('should handle squashed text (no spaces) from pdf-parse', () => {
+      const text = `
+115618321.0450万提出 70115818521.5
+215717519.0300万      70215918622.0
+3欠場                  70315017019.0
+      `;
+
+      const measurements = parseMeasurementText(text);
+
+      expect(measurements).toHaveLength(6);
+      expect(measurements[0].lotNumber).toBe(1);
+      expect(measurements[0].height).toBe(156);
+      expect(measurements[1].lotNumber).toBe(701);
+      expect(measurements[1].height).toBe(158);
+      expect(measurements[4].lotNumber).toBe(3);
+      expect(measurements[4].status).toBe('欠場');
+    });
+
     it('should handle multiple lot numbers with mixed data', () => {
       const text = `
   1   156   183   21.0
