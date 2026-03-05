@@ -35,8 +35,8 @@ export const JbisImportForm: React.FC = () => {
     setResults(null);
     
     try {
-      // 単一URLもバッチ処理を使用
-      const result = await importMultipleJbisUrls.mutateAsync({ saleUrls: [saleUrl.trim()] });
+      // 単一URL用のAPIを使用
+      const result = await importJbisUrls.mutateAsync({ saleUrl: saleUrl.trim() });
       setResults(result);
     } catch (error) {
       console.error('Import failed:', error);

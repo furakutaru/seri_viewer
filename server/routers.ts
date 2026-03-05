@@ -334,16 +334,37 @@ export const appRouter = router({
         return await deleteSale(input);
       }),
 
-    // JBISセールページからURLをインポート
+    // JBIS URLをインポート（バッチ処理）
     importJbisUrls: publicProcedure
       .input(z.object({
         saleUrl: z.string().url(),
       }))
       .mutation(async ({ input }) => {
         try {
-          const result = await jbisImportService.importFromSaleUrl(input.saleUrl);
+          console.log(`[API] Starting batch JBIS import for single URL: ${input.saleUrl}`);
+          
+          // JBISデータを取得
+          const { jbisScraperService } = await import('./_core/jbisScraper');
+          const horseData = await jbisScraperService.scrapeSalePage(input.saleUrl);
+          
+          if (horseData.length === 0) {
+            return { success: 0, skipped: 0, errors: ['No horse data found'], total: 0 };
+          }
+          
+          // バッチ処理を実行（20件ずつ）
+          const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 20, 1);
+          
+          const result = {
+            success: batchResult.summary.updated + batchResult.summary.sireUpdated + batchResult.summary.damUpdated,
+            skipped: batchResult.summary.notFound,
+            errors: batchResult.summary.errors,
+            total: batchResult.totalProcessed
+          };
+          
+          console.log(`[API] Completed ${input.saleUrl}: ${result.success} horses updated, ${result.total} total processed`);
           return result;
         } catch (error: any) {
+          console.error('[API] JBIS import failed:', error);
           throw new Error(`JBIS import failed: ${error.message}`);
         }
       }),
@@ -371,8 +392,8 @@ export const appRouter = router({
               continue;
             }
             
-            // バッチ処理を実行（50件ずつ）
-            const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 50, 1);
+            // バッチ処理を実行（20件ずつ）
+            const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 20, 1);
             
             totalResult.success += batchResult.summary.updated + batchResult.summary.sireUpdated + batchResult.summary.damUpdated;
             totalResult.total += batchResult.totalProcessed;
