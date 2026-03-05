@@ -340,22 +340,25 @@ export const appRouter = router({
         saleUrl: z.string().url(),
       }))
       .mutation(async ({ input }) => {
+        console.log(`[API] Starting batch JBIS import for single URL: ${input.saleUrl}`);
+
         try {
-          console.log(`[API] Starting batch JBIS import for single URL: ${input.saleUrl}`);
-          
           // JBISデータを取得
           const { jbisScraperService } = await import('./_core/jbisScraper');
+          console.log(`[API] Scraper imported successfully`);
+          
           const horseData = await jbisScraperService.scrapeSalePage(input.saleUrl);
+          console.log(`[API] Scraped ${horseData.length} horses`);
           
           if (horseData.length === 0) {
-            const result = { success: 0, skipped: 0, errors: ['No horse data found'], total: 0 };
-            console.log(`[API] No data found for ${input.saleUrl}`);
-            return result;
+            console.log(`[API] No horse data found for ${input.saleUrl}`);
+            return { success: 0, skipped: 0, errors: ['No horse data found'], total: 0 };
           }
           
           // 高速バッチ処理を実行（30件ずつ）
           console.log(`[API] Starting batch processing for ${horseData.length} horses`);
           const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 30, 1);
+          console.log(`[API] Batch processing completed`);
           
           const result = {
             success: batchResult.summary.updated + batchResult.summary.sireUpdated + batchResult.summary.damUpdated,
@@ -364,27 +367,15 @@ export const appRouter = router({
             total: batchResult.totalProcessed
           };
           
-          console.log(`[API] Completed ${input.saleUrl}: ${result.success} horses updated, ${result.total} total processed`);
-          
-          // レスポンスを検証して返す
-          if (!result || typeof result !== 'object') {
-            throw new Error('Invalid result object');
-          }
-          
+          console.log(`[API] Final result: ${result.success} updated, ${result.total} total`);
           return result;
+          
         } catch (error: any) {
           console.error('[API] JBIS import failed:', error);
+          console.error('[API] Error stack:', error.stack);
           
-          // エラー時も必ず有効なJSONを返す
-          const errorResult = {
-            success: 0,
-            skipped: 0,
-            errors: [`JBIS import failed: ${error.message || 'Unknown error'}`],
-            total: 0
-          };
-          
-          console.log(`[API] Returning error result: ${JSON.stringify(errorResult)}`);
-          return errorResult;
+          // tRPCの標準エラー処理を使用
+          throw new Error(`JBIS import failed: ${error.message || 'Unknown error'}`);
         }
       }),
 
