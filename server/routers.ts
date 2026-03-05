@@ -348,10 +348,13 @@ export const appRouter = router({
           const horseData = await jbisScraperService.scrapeSalePage(input.saleUrl);
           
           if (horseData.length === 0) {
-            return { success: 0, skipped: 0, errors: ['No horse data found'], total: 0 };
+            const result = { success: 0, skipped: 0, errors: ['No horse data found'], total: 0 };
+            console.log(`[API] No data found for ${input.saleUrl}`);
+            return result;
           }
           
           // 高速バッチ処理を実行（30件ずつ）
+          console.log(`[API] Starting batch processing for ${horseData.length} horses`);
           const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 30, 1);
           
           const result = {
@@ -362,10 +365,26 @@ export const appRouter = router({
           };
           
           console.log(`[API] Completed ${input.saleUrl}: ${result.success} horses updated, ${result.total} total processed`);
+          
+          // レスポンスを検証して返す
+          if (!result || typeof result !== 'object') {
+            throw new Error('Invalid result object');
+          }
+          
           return result;
         } catch (error: any) {
           console.error('[API] JBIS import failed:', error);
-          throw new Error(`JBIS import failed: ${error.message}`);
+          
+          // エラー時も必ず有効なJSONを返す
+          const errorResult = {
+            success: 0,
+            skipped: 0,
+            errors: [`JBIS import failed: ${error.message || 'Unknown error'}`],
+            total: 0
+          };
+          
+          console.log(`[API] Returning error result: ${JSON.stringify(errorResult)}`);
+          return errorResult;
         }
       }),
 
