@@ -23,16 +23,18 @@ function isSecureRequest(req: Request) {
 
 export function getSessionCookieOptions(
   req: Request
-): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
+): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure"> {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const isSecure = isSecureRequest(req);
-  const hostname = req.hostname;
+
+  // Since we use app.set("trust proxy", 1), req.secure automatically
+  // respects the X-Forwarded-Proto header from Vercel/Render.
+  const isSecure = isDevelopment ? false : req.secure;
 
   return {
     httpOnly: true,
     path: "/",
-    sameSite: isDevelopment ? "lax" : "none",
-    secure: isDevelopment ? false : isSecure,
-    domain: isDevelopment ? undefined : hostname,
+    // The frontend and backend are on the identical origin, so "lax" is standard and secure.
+    sameSite: "lax",
+    secure: isSecure,
   };
 }

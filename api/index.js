@@ -677,23 +677,15 @@ var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 init_db();
 
 // server/_core/cookies.ts
-function isSecureRequest(req) {
-  if (req.protocol === "https") return true;
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  if (!forwardedProto) return false;
-  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
-  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
-}
 function getSessionCookieOptions(req) {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const isSecure = isSecureRequest(req);
-  const hostname = req.hostname;
+  const isSecure = isDevelopment ? false : req.secure;
   return {
     httpOnly: true,
     path: "/",
-    sameSite: isDevelopment ? "lax" : "none",
-    secure: isDevelopment ? false : isSecure,
-    domain: isDevelopment ? void 0 : hostname
+    // The frontend and backend are on the identical origin, so "lax" is standard and secure.
+    sameSite: "lax",
+    secure: isSecure
   };
 }
 
@@ -804,11 +796,17 @@ var SDKServer = class {
         algorithms: ["HS256"]
       });
       const { openId, appId, name } = payload;
-      if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) {
+      if (!isNonEmptyString(openId)) {
+        console.warn("[Auth] Session validation failed: openId is missing");
         return null;
       }
-      return { openId, appId, name };
+      return {
+        openId,
+        appId: typeof appId === "string" ? appId : "",
+        name: typeof name === "string" ? name : ""
+      };
     } catch (error) {
+      console.warn("[Auth] JWT Verify Error:", error);
       return null;
     }
   }
