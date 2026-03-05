@@ -28,6 +28,10 @@ function configureApp(app: express.Express) {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Cookie parser (Required for authentication to read cookies)
+  const cookieParser = require("cookie-parser");
+  app.use(cookieParser());
+
   console.log("[Server] Configuring routes...");
 
   // OAuth & Mock OAuth

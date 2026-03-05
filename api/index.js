@@ -1,5 +1,11 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -818,21 +824,37 @@ var SDKServer = class {
     return data;
   }
   async authenticateRequest(req) {
-    const cookies = this.parseCookies(req.headers.cookie);
+    const cookieHeader = req.headers.cookie;
+    const cookies = this.parseCookies(cookieHeader);
     const sessionCookie = cookies.get(COOKIE_NAME);
-    if (!sessionCookie) return null;
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[Auth] Cookie header present:", !!cookieHeader);
+      console.log("[Auth] Session cookie present:", !!sessionCookie);
+    } else {
+      console.log("[Auth] Authenticating request, cookie present:", !!sessionCookie);
+    }
+    if (!sessionCookie) {
+      console.log("[Auth] No session cookie found. Cookie names present:", cookieHeader ? cookieHeader.split(";").map((c) => c.split("=")[0].trim()) : []);
+      return null;
+    }
     const session = await this.verifySession(sessionCookie);
-    if (!session) return null;
+    if (!session) {
+      console.log("[Auth] Session verification failed for cookie value (JWT invalid or expired)");
+      return null;
+    }
+    console.log("[Auth] Session verified for openId:", session.openId);
     const sessionUserId = session.openId;
     const signedInAt = /* @__PURE__ */ new Date();
     let user = await getUserByOpenId(sessionUserId);
     if (!user) {
+      console.log("[Auth] User not found in DB for openId:", sessionUserId);
       return null;
     }
     await upsertUser({
       openId: user.openId,
       lastSignedIn: signedInAt
     });
+    console.log("[Auth] Authentication successful for:", user.email);
     return user;
   }
 };
@@ -2248,6 +2270,8 @@ function configureApp(app2) {
   );
   app2.use(express.json({ limit: "50mb" }));
   app2.use(express.urlencoded({ limit: "50mb", extended: true }));
+  const cookieParser = __require("cookie-parser");
+  app2.use(cookieParser());
   console.log("[Server] Configuring routes...");
   registerOAuthRoutes(app2);
   registerMockOAuthRoutes(app2);

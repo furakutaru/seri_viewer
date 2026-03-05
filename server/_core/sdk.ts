@@ -183,22 +183,38 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User | null> {
-    const cookies = this.parseCookies(req.headers.cookie);
+    const cookieHeader = req.headers.cookie;
+    const cookies = this.parseCookies(cookieHeader);
     const sessionCookie = cookies.get(COOKIE_NAME);
 
-    if (!sessionCookie) return null;
+    // Debug: log cookie state on every request
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[Auth] Cookie header present:", !!cookieHeader);
+      console.log("[Auth] Session cookie present:", !!sessionCookie);
+    } else {
+      // In production, only log when there's an issue
+      console.log("[Auth] Authenticating request, cookie present:", !!sessionCookie);
+    }
+
+    if (!sessionCookie) {
+      console.log("[Auth] No session cookie found. Cookie names present:", cookieHeader ? cookieHeader.split(";").map(c => c.split("=")[0].trim()) : []);
+      return null;
+    }
 
     const session = await this.verifySession(sessionCookie);
-    if (!session) return null;
+    if (!session) {
+      console.log("[Auth] Session verification failed for cookie value (JWT invalid or expired)");
+      return null;
+    }
+
+    console.log("[Auth] Session verified for openId:", session.openId);
 
     const sessionUserId = session.openId;
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
     if (!user) {
-      // If user not in DB, sync from OAuth (if applicable)
-      // For now, if verifySession passed, we treat the session as valid
-      // In production, we'd want to ensure the user exists in our DB
+      console.log("[Auth] User not found in DB for openId:", sessionUserId);
       return null;
     }
 
@@ -207,6 +223,7 @@ class SDKServer {
       lastSignedIn: signedInAt,
     });
 
+    console.log("[Auth] Authentication successful for:", user.email);
     return user;
   }
 }
