@@ -335,11 +335,12 @@ export const appRouter = router({
       }),
 
     // JBIS URLをインポート（バッチ処理）
-    importJbisUrls: publicProcedure
+    importJbisUrls: protectedProcedure
       .input(z.object({
         saleUrl: z.string().url(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
         console.log(`[API] Starting batch JBIS import for single URL: ${input.saleUrl}`);
 
         try {
@@ -380,11 +381,12 @@ export const appRouter = router({
       }),
 
     // 複数のJBISセールURLを一括インポート（バッチ処理）
-    importMultipleJbisUrls: publicProcedure
+    importMultipleJbisUrls: protectedProcedure
       .input(z.object({
         saleUrls: z.array(z.string().url()),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
         try {
           console.log(`[API] Starting batch JBIS import for ${input.saleUrls.length} URLs`);
           
