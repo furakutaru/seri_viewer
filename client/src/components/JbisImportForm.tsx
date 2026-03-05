@@ -19,14 +19,15 @@ export const JbisImportForm: React.FC = () => {
   const importMultipleJbisUrls = trpc.admin.importMultipleJbisUrls.useMutation();
   const { data: jbisStatus } = trpc.admin.checkJbisStatus.useQuery();
 
-  useEffect(() => {
-    if (results) {
-      // インポート完了後にステータスを再取得
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    }
-  }, [results]);
+  // リダイレクトを無効化してエラー確認できるようにする
+  // useEffect(() => {
+  //   if (results) {
+  //     // インポート完了後にステータスを再取得
+  //     setTimeout(() => {
+  //       window.location.reload();
+  //     }, 2000);
+  //   }
+  // }, [results]);
 
   const handleSingleImport = async () => {
     if (!saleUrl.trim()) return;
