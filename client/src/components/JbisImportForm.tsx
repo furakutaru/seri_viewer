@@ -6,6 +6,9 @@ interface ImportResult {
   skipped: number;
   errors: string[];
   total?: number;
+  hasMore?: boolean;
+  totalHorses?: number;
+  processedSoFar?: number;
 }
 
 export const JbisImportForm: React.FC = () => {
@@ -36,15 +39,61 @@ export const JbisImportForm: React.FC = () => {
     setResults(null);
     
     try {
-      // 単一URL用のAPIを使用
-      const result = await importJbisUrls.mutateAsync({ saleUrl: saleUrl.trim() });
-      setResults(result);
+      let offset = 0;
+      const limit = 100;
+      let totalResult: ImportResult = {
+        success: 0,
+        skipped: 0,
+        errors: [],
+        total: 0,
+        hasMore: false,
+        totalHorses: 0,
+        processedSoFar: 0
+      };
+      
+      // 段階的処理で全件を処理
+      do {
+        console.log(`[Client] Processing chunk: offset=${offset}, limit=${limit}`);
+        const result = await importJbisUrls.mutateAsync({ 
+          saleUrl: saleUrl.trim(),
+          offset,
+          limit
+        });
+        
+        // 結果を累積
+        totalResult.success += result.success;
+        totalResult.skipped += result.skipped;
+        totalResult.errors.push(...result.errors);
+        totalResult.total = (result as any).totalHorses || 0;
+        totalResult.hasMore = (result as any).hasMore || false;
+        totalResult.totalHorses = (result as any).totalHorses || 0;
+        totalResult.processedSoFar = (result as any).processedSoFar || 0;
+        
+        // 進捗を表示
+        setResults({ ...totalResult });
+        
+        // 次のチャンクへ
+        offset += limit;
+        
+        // 少し待機してサーバー負荷を軽減
+        if ((result as any).hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+      } while (totalResult.hasMore);
+      
+      console.log(`[Client] Final result: ${totalResult.success} updated, ${totalResult.total} total`);
+      
     } catch (error) {
       console.error('Import failed:', error);
       setResults({
         success: 0,
         skipped: 0,
-        errors: [error instanceof Error ? error.message : 'Unknown error']
+        errors: [error instanceof Error ? error.message : 'Unknown error'],
+        total: 0,
+        hasMore: false,
+        totalHorses: 0,
+        processedSoFar: 0
       });
     } finally {
       setIsLoading(false);
@@ -129,6 +178,26 @@ export const JbisImportForm: React.FC = () => {
           >
             {isLoading ? 'インポート中...' : 'インポート実行'}
           </button>
+          
+          {/* 進捗表示 */}
+          {isLoading && results && results.totalHorses && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-md">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-blue-800">
+                  進捗: {results.processedSoFar || 0} / {results.totalHorses} 件
+                </span>
+                <span className="text-sm text-blue-600">
+                  {Math.round(((results.processedSoFar || 0) / results.totalHorses) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-blue-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${((results.processedSoFar || 0) / results.totalHorses) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -174,6 +243,18 @@ export const JbisImportForm: React.FC = () => {
               <span>エラー:</span>
               <span className="text-red-600 font-medium">{results.errors.length}</span>
             </div>
+            {results.totalHorses && (
+              <div className="flex justify-between">
+                <span>総件数:</span>
+                <span className="text-blue-600 font-medium">{results.totalHorses}</span>
+              </div>
+            )}
+            {results.processedSoFar && results.totalHorses && (
+              <div className="flex justify-between">
+                <span>処理済み:</span>
+                <span className="text-purple-600 font-medium">{results.processedSoFar}</span>
+              </div>
+            )}
           </div>
           
           {results.errors.length > 0 && (

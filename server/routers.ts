@@ -334,14 +334,16 @@ export const appRouter = router({
         return await deleteSale(input);
       }),
 
-    // JBIS URLをインポート（バッチ処理）
+    // JBIS URLをインポート（段階的処理）
     importJbisUrls: protectedProcedure
       .input(z.object({
         saleUrl: z.string().url(),
+        limit: z.number().optional().default(100), // 一度に処理する最大件数
+        offset: z.number().optional().default(0),  // 開始位置
       }))
       .mutation(async ({ input, ctx }) => {
         if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
-        console.log(`[API] Starting batch JBIS import for single URL: ${input.saleUrl}`);
+        console.log(`[API] Starting chunked JBIS import: ${input.saleUrl} (limit: ${input.limit}, offset: ${input.offset})`);
 
         try {
           // JBISデータを取得
@@ -353,22 +355,28 @@ export const appRouter = router({
           
           if (horseData.length === 0) {
             console.log(`[API] No horse data found for ${input.saleUrl}`);
-            return { success: 0, skipped: 0, errors: ['No horse data found'], total: 0 };
+            return { success: 0, skipped: 0, errors: ['No horse data found'], total: 0, hasMore: false };
           }
           
-          // 高速バッチ処理を実行（20件ずつ）- タイムアウト対策
-          console.log(`[API] Starting batch processing for ${horseData.length} horses`);
-          const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 20, 1);
-          console.log(`[API] Batch processing completed`);
+          // 指定範囲のデータを抽出
+          const chunkData = horseData.slice(input.offset, input.offset + input.limit);
+          console.log(`[API] Processing chunk: ${chunkData.length} horses (${input.offset}-${input.offset + chunkData.length})`);
+          
+          // 小さなバッチで処理（10件ずつ）
+          const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(chunkData, 10, 1);
+          console.log(`[API] Chunk processing completed`);
           
           const result = {
             success: batchResult.summary.updated + batchResult.summary.sireUpdated + batchResult.summary.damUpdated,
             skipped: batchResult.summary.notFound,
             errors: batchResult.summary.errors,
-            total: batchResult.totalProcessed
+            total: batchResult.totalProcessed,
+            hasMore: input.offset + input.limit < horseData.length, // まだ処理すべきデータがあるか
+            totalHorses: horseData.length, // 全体の件数
+            processedSoFar: input.offset + batchResult.totalProcessed // これまでに処理した件数
           };
           
-          console.log(`[API] Final result: ${result.success} updated, ${result.total} total`);
+          console.log(`[API] Chunk result: ${result.success} updated, ${result.total} processed, hasMore: ${result.hasMore}`);
           return result;
           
         } catch (error: any) {
