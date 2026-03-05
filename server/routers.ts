@@ -348,16 +348,43 @@ export const appRouter = router({
         }
       }),
 
-    // 複数のJBISセールURLを一括インポート
+    // 複数のJBISセールURLを一括インポート（バッチ処理）
     importMultipleJbisUrls: publicProcedure
       .input(z.object({
         saleUrls: z.array(z.string().url()),
       }))
       .mutation(async ({ input }) => {
         try {
-          const result = await jbisImportService.importFromMultipleUrls(input.saleUrls);
-          return result;
+          console.log(`[API] Starting batch JBIS import for ${input.saleUrls.length} URLs`);
+          
+          let totalResult = { success: 0, skipped: 0, errors: [] as string[], total: 0 };
+          
+          for (const saleUrl of input.saleUrls) {
+            console.log(`[API] Processing: ${saleUrl}`);
+            
+            // JBISデータを取得
+            const { jbisScraperService } = await import('./_core/jbisScraper');
+            const horseData = await jbisScraperService.scrapeSalePage(saleUrl);
+            
+            if (horseData.length === 0) {
+              totalResult.errors.push(`No horse data found for ${saleUrl}`);
+              continue;
+            }
+            
+            // バッチ処理を実行（50件ずつ）
+            const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 50, 1);
+            
+            totalResult.success += batchResult.summary.updated + batchResult.summary.sireUpdated + batchResult.summary.damUpdated;
+            totalResult.total += batchResult.totalProcessed;
+            totalResult.errors.push(...batchResult.summary.errors);
+            
+            console.log(`[API] Completed ${saleUrl}: ${batchResult.summary.updated} horses updated, ${batchResult.totalProcessed} total processed`);
+          }
+          
+          console.log(`[API] All URLs processed: ${totalResult.success} total updates, ${totalResult.errors.length} errors`);
+          return totalResult;
         } catch (error: any) {
+          console.error('[API] Multiple JBIS import failed:', error);
           throw new Error(`Multiple JBIS import failed: ${error.message}`);
         }
       }),
