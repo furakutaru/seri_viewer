@@ -39,13 +39,7 @@ export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => {
-      const cookieHeader = opts.ctx.req.headers.cookie;
-      const cookieNames = cookieHeader ? cookieHeader.split(";").map(c => c.split("=")[0].trim()) : [];
-      console.log("[auth.me] Cookie names in request:", cookieNames);
-      console.log("[auth.me] User from context:", opts.ctx.user ? opts.ctx.user.email : "null");
-      return opts.ctx.user;
-    }),
+    me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

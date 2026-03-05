@@ -819,37 +819,21 @@ var SDKServer = class {
     return data;
   }
   async authenticateRequest(req) {
-    const cookieHeader = req.headers.cookie;
-    const cookies = this.parseCookies(cookieHeader);
+    const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
-    if (process.env.NODE_ENV !== "production") {
-      console.log("[Auth] Cookie header present:", !!cookieHeader);
-      console.log("[Auth] Session cookie present:", !!sessionCookie);
-    } else {
-      console.log("[Auth] Authenticating request, cookie present:", !!sessionCookie);
-    }
-    if (!sessionCookie) {
-      console.log("[Auth] No session cookie found. Cookie names present:", cookieHeader ? cookieHeader.split(";").map((c) => c.split("=")[0].trim()) : []);
-      return null;
-    }
+    if (!sessionCookie) return null;
     const session = await this.verifySession(sessionCookie);
-    if (!session) {
-      console.log("[Auth] Session verification failed for cookie value (JWT invalid or expired)");
-      return null;
-    }
-    console.log("[Auth] Session verified for openId:", session.openId);
+    if (!session) return null;
     const sessionUserId = session.openId;
     const signedInAt = /* @__PURE__ */ new Date();
     let user = await getUserByOpenId(sessionUserId);
     if (!user) {
-      console.log("[Auth] User not found in DB for openId:", sessionUserId);
       return null;
     }
     await upsertUser({
       openId: user.openId,
       lastSignedIn: signedInAt
     });
-    console.log("[Auth] Authentication successful for:", user.email);
     return user;
   }
 };
@@ -1957,13 +1941,7 @@ var appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query((opts) => {
-      const cookieHeader = opts.ctx.req.headers.cookie;
-      const cookieNames = cookieHeader ? cookieHeader.split(";").map((c) => c.split("=")[0].trim()) : [];
-      console.log("[auth.me] Cookie names in request:", cookieNames);
-      console.log("[auth.me] User from context:", opts.ctx.user ? opts.ctx.user.email : "null");
-      return opts.ctx.user;
-    }),
+    me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
