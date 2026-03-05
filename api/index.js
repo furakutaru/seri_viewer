@@ -1163,12 +1163,14 @@ init_db();
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { execSync } from "child_process";
 import crypto from "crypto";
 import fetch2 from "node-fetch";
 import * as cheerio from "cheerio";
 import iconv from "iconv-lite";
+import { createRequire } from "module";
 import { eq as eq2 } from "drizzle-orm";
+var require2 = createRequire(import.meta.url);
+var pdfParse = require2("pdf-parse");
 var CACHE_DIR = path.join(process.env.VERCEL ? os.tmpdir() : process.cwd(), ".cache");
 try {
   if (!fs.existsSync(CACHE_DIR)) {
@@ -1357,28 +1359,23 @@ function cleanText(text2) {
 async function parsePdfMeasurements(pdfUrl) {
   try {
     const buffer = await fetchAndCachePdf(pdfUrl);
-    const tmpDir = os.tmpdir();
-    const pdfPath = path.join(tmpDir, `temp_${Date.now()}.pdf`);
-    const txtPath = path.join(tmpDir, `temp_${Date.now()}.txt`);
-    if (buffer) {
-      fs.writeFileSync(pdfPath, buffer instanceof Buffer ? buffer : Buffer.from(buffer));
-    } else {
-      throw new Error("Failed to fetch PDF");
+    if (!buffer) {
+      throw new Error("Failed to fetch PDF: Buffer is empty");
     }
+    console.log(`Analyzing PDF content with pdf-parse... (${pdfUrl})`);
+    let pdfData;
     try {
-      execSync(`pdftotext -layout "${pdfPath}" "${txtPath}"`, { encoding: "utf-8" });
-    } catch (err) {
-      console.warn("pdftotext command failed");
-      throw new Error("PDF conversion failed");
+      pdfData = await pdfParse(buffer);
+    } catch (parseError) {
+      console.error("PDF parse error:", parseError);
+      throw new Error(`PDF parsing failed: ${parseError.message}`);
     }
-    const text2 = fs.readFileSync(txtPath, "utf-8");
-    const measurements = parseMeasurementText(text2);
-    try {
-      fs.unlinkSync(pdfPath);
-      fs.unlinkSync(txtPath);
-    } catch (e) {
+    if (!pdfData || !pdfData.text) {
+      console.warn("PDF parsed but no text content found");
+      return [];
     }
-    console.log(`Successfully extracted ${measurements.length} measurements`);
+    const measurements = parseMeasurementText(pdfData.text);
+    console.log(`Successfully extracted ${measurements.length} measurements from ${pdfUrl}`);
     return measurements;
   } catch (error) {
     console.error("Error parsing PDF:", error);
@@ -1388,10 +1385,10 @@ async function parsePdfMeasurements(pdfUrl) {
 function parseMeasurementText(text2) {
   const measurements = [];
   const lines = text2.split("\n");
-  const pattern = /^\s*(\d+)\s+(欠場|\d+\s+\d+\s+[\d.]+)/;
+  const pattern = /(\d{1,4})\s+(欠場|\d{2,3}\s+\d{2,3}\s+\d{1,2}(?:\.\d+)?)/g;
   for (const line of lines) {
-    const match = line.match(pattern);
-    if (match) {
+    const matches = Array.from(line.matchAll(pattern));
+    for (const match of matches) {
       const lotNumber = parseInt(match[1]);
       if (match[2] === "\u6B20\u5834") {
         measurements.push({

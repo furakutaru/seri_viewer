@@ -7,8 +7,9 @@ import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 import iconv from 'iconv-lite';
 import jschardet from 'jschardet';
-// @ts-ignore - pdf-parse types are tricky sometimes
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 import { horses, sales } from '../drizzle/schema';
 import { getDb } from './db';
 import { eq } from 'drizzle-orm';
