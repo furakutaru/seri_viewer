@@ -8,7 +8,6 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerMockOAuthRoutes } from "./mockOAuth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,7 +36,6 @@ app.set("trust proxy", 1);
 /**
  * Common middleware and route registration
  */
-
 function configureApp(app: express.Express) {
   // Enable CORS
   app.use(
@@ -67,10 +65,11 @@ function configureApp(app: express.Express) {
 
   // Static files (only for non-Vercel environments)
   if (!process.env.VERCEL) {
-    if (process.env.NODE_ENV === "development") {
-      // In development, setupVite is handled in startServer to get the server instance
-    } else {
-      serveStatic(app);
+    if (process.env.NODE_ENV !== "development") {
+      // Dynamic import to avoid bundling Vite in production
+      import("./vite").then(({ serveStatic }) => serveStatic(app)).catch(err => {
+        console.error("[Server] Failed to load static file handler:", err);
+      });
     }
   }
 }
@@ -87,6 +86,7 @@ async function startServer() {
   const server = createServer(app);
 
   if (process.env.NODE_ENV === "development") {
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   }
 
@@ -106,6 +106,3 @@ if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
 
 export { app };
 export default app;
-
-
-
