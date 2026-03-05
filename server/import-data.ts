@@ -11,11 +11,15 @@ import { horses, sales } from '../drizzle/schema';
 import { getDb } from './db';
 import { eq } from 'drizzle-orm';
 
-const CACHE_DIR = path.join(process.cwd(), '.cache');
+const CACHE_DIR = path.join(process.env.VERCEL ? os.tmpdir() : process.cwd(), '.cache');
 
-// Ensure cache directory exists
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
+// Ensure cache directory exists, gracefully bypass if read-only
+try {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn("[Warning] Could not create CACHE_DIR", e);
 }
 
 /**

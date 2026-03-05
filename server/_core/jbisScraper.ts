@@ -16,13 +16,15 @@ interface CacheData {
   data: JbisHorseData[];
   timestamp: number;
 }
+import os from 'os';
 
 export class JbisScraperService {
   private cacheDir: string;
   private cacheExpiry: number = 24 * 60 * 60 * 1000; // 24時間
 
   constructor() {
-    this.cacheDir = path.join(process.cwd(), '.cache', 'jbis');
+    const baseDir = process.env.VERCEL ? os.tmpdir() : process.cwd();
+    this.cacheDir = path.join(baseDir, '.cache', 'jbis');
     this.ensureCacheDir();
   }
 
@@ -48,7 +50,7 @@ export class JbisScraperService {
       }
 
       const cacheData: CacheData = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-      
+
       // キャッシュの有効期限チェック
       if (Date.now() - cacheData.timestamp > this.cacheExpiry) {
         fs.unlinkSync(cachePath);
@@ -71,7 +73,7 @@ export class JbisScraperService {
         data,
         timestamp: Date.now()
       };
-      
+
       fs.writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
       console.log(`[JbisScraper] Saved to cache: ${url}`);
     } catch (error) {
@@ -101,16 +103,16 @@ export class JbisScraperService {
       }
 
       const html = await response.text();
-      
+
       // HTML解析
       const horseData = this.parseHorseData(html);
-      
+
       // キャッシュ保存
       this.saveToCache(saleUrl, horseData);
-      
+
       console.log(`[JbisScraper] Found ${horseData.length} horses`);
       return horseData;
-      
+
     } catch (error) {
       console.error(`[JbisScraper] Error scraping ${saleUrl}:`, error);
       throw error;
@@ -119,41 +121,41 @@ export class JbisScraperService {
 
   private parseHorseData(html: string): JbisHorseData[] {
     const horseData: JbisHorseData[] = [];
-    
+
     // 馬のブロックを抽出（番号リンクを含むdivブロック）
     const horseBlocks = html.match(/<div>\s*<div>\s*<a href="\/horse\/\d+\/"[^>]*>\d+<\/a>[\s\S]*?<\/div>\s*<\/div>/g);
-    
+
     if (!horseBlocks) {
       console.log('[JbisScraper] No horse blocks found');
       return horseData;
     }
-    
+
     console.log(`[JbisScraper] Found ${horseBlocks.length} horse blocks`);
-    
+
     // 各ブロックから馬情報を抽出
     for (const block of horseBlocks) {
       // ブロック内のすべての馬リンクを抽出
       const allLinks = block.match(/<a href="\/horse\/(\d+)\/"[^>]*class="txt-link">([^<]+)<\/a>/g);
-      
+
       if (!allLinks || allLinks.length < 3) {
         console.log('[JbisScraper] Insufficient links in block, skipping');
         continue;
       }
-      
+
       // 最初の3つを馬名、父名、母名として使用
       const horseMatch = allLinks[0]?.match(/<a href="\/horse\/(\d+)\/"[^>]*class="txt-link">([^<]+)<\/a>/);
       const sireMatch = allLinks[1]?.match(/<a href="\/horse\/(\d+)\/"[^>]*class="txt-link">([^<]+)<\/a>/);
       const damMatch = allLinks[2]?.match(/<a href="\/horse\/(\d+)\/"[^>]*class="txt-link">([^<]+)<\/a>/);
-      
+
       if (horseMatch && sireMatch && damMatch) {
         const [, horseId, horseName] = horseMatch;
         const [, sireId, sireName] = sireMatch;
         const [, damId, damName] = damMatch;
-        
+
         const cleanHorseName = horseName.replace(/\s+/g, '').trim();
         const cleanSireName = sireName.replace(/\s+/g, '').trim();
         const cleanDamName = damName.replace(/\s+/g, '').trim();
-        
+
         horseData.push({
           horseName: cleanHorseName,
           horseUrl: `https://www.jbis.or.jp/horse/${horseId}/`,
@@ -164,9 +166,9 @@ export class JbisScraperService {
         });
       }
     }
-    
+
     console.log(`[JbisScraper] Processed ${horseData.length} horses`);
-    
+
     // デバッグ用：最初の数件を表示
     if (horseData.length > 0) {
       console.log('[JbisScraper] First few matches:');
@@ -174,7 +176,7 @@ export class JbisScraperService {
         console.log(`  ${index + 1}. ${horse.horseName} (${horse.horseUrl})`);
       });
     }
-    
+
     return horseData;
   }
 
@@ -202,7 +204,7 @@ export class JbisScraperService {
         const stats = fs.statSync(filePath);
         totalSize += stats.size;
       });
-      
+
       return {
         count: files.length,
         size: totalSize

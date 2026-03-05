@@ -1170,9 +1170,13 @@ import fetch2 from "node-fetch";
 import * as cheerio from "cheerio";
 import iconv from "iconv-lite";
 import { eq as eq2 } from "drizzle-orm";
-var CACHE_DIR = path.join(process.cwd(), ".cache");
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
+var CACHE_DIR = path.join(process.env.VERCEL ? os.tmpdir() : process.cwd(), ".cache");
+try {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn("[Warning] Could not create CACHE_DIR", e);
 }
 function getCacheKey(url) {
   return crypto.createHash("md5").update(url).digest("hex");
@@ -1622,12 +1626,14 @@ var googleSearchService = new GoogleSearchService();
 // server/_core/jbisScraper.ts
 import fs2 from "fs";
 import path2 from "path";
+import os2 from "os";
 var JbisScraperService = class {
   cacheDir;
   cacheExpiry = 24 * 60 * 60 * 1e3;
   // 24時間
   constructor() {
-    this.cacheDir = path2.join(process.cwd(), ".cache", "jbis");
+    const baseDir = process.env.VERCEL ? os2.tmpdir() : process.cwd();
+    this.cacheDir = path2.join(baseDir, ".cache", "jbis");
     this.ensureCacheDir();
   }
   ensureCacheDir() {
