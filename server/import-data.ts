@@ -338,14 +338,18 @@ export function parseMeasurementText(text: string) {
 
   const lines = text.split('\n');
 
-  // 各行から上場番号と測尺データを抽出
+  // 各行から上場番号と測尺データを抽出 (複数カラムに対応)
   // パターン: "  1   156   183   21.0" または "  1   欠場"
-  // 正規表現: 上場番号（1-3桁）、その後に測尺データ（体高、胸囲、管囲）または「欠場」
-  const pattern = /^\s*(\d+)\s+(欠場|\d+\s+\d+\s+[\d.]+)/;
+  // 正規表現: 
+  //   1群: 上場番号（1-4桁）
+  //   2群: 「欠場」または「体高 胸囲 管囲」（各数値の間にスペース）
+  // グローバル属性(g)を付けて、1行に複数カラムある場合も全て抽出する
+  const pattern = /(\d{1,4})\s+(欠場|\d{2,3}\s+\d{2,3}\s+\d{1,2}(?:\.\d+)?)/g;
 
   for (const line of lines) {
-    const match = line.match(pattern);
-    if (match) {
+    const matches = Array.from(line.matchAll(pattern));
+
+    for (const match of matches) {
       const lotNumber = parseInt(match[1]);
 
       if (match[2] === '欠場') {
