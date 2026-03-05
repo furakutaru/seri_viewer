@@ -7,9 +7,6 @@ import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 import iconv from 'iconv-lite';
 import jschardet from 'jschardet';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
 import { horses, sales } from '../drizzle/schema';
 import { getDb } from './db';
 import { eq } from 'drizzle-orm';
@@ -303,10 +300,20 @@ export async function parsePdfMeasurements(pdfUrl: string) {
 
     console.log(`Analyzing PDF content with pdf-parse... (${pdfUrl})`);
 
-    // PDFをパース (純粋なNode.jsライブラリを使用。Vercel等のバイナリ未対応環境でも動作します)
+    // PDFをパース（起動時クラッシュを防ぐため動的インポートを使用）
+    let pdfParseFn: (buffer: Buffer) => Promise<{ text: string }>;
+    try {
+      const { createRequire } = await import('module');
+      const req = createRequire(import.meta.url);
+      pdfParseFn = req('pdf-parse');
+    } catch (importError: any) {
+      console.error('Failed to load pdf-parse:', importError);
+      throw new Error(`pdf-parse module not available: ${importError.message}`);
+    }
+
     let pdfData;
     try {
-      pdfData = await pdfParse(buffer);
+      pdfData = await pdfParseFn(buffer);
     } catch (parseError: any) {
       console.error('PDF parse error:', parseError);
       throw new Error(`PDF parsing failed: ${parseError.message}`);

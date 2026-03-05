@@ -1167,10 +1167,7 @@ import crypto from "crypto";
 import fetch2 from "node-fetch";
 import * as cheerio from "cheerio";
 import iconv from "iconv-lite";
-import { createRequire } from "module";
 import { eq as eq2 } from "drizzle-orm";
-var require2 = createRequire(import.meta.url);
-var pdfParse = require2("pdf-parse");
 var CACHE_DIR = path.join(process.env.VERCEL ? os.tmpdir() : process.cwd(), ".cache");
 try {
   if (!fs.existsSync(CACHE_DIR)) {
@@ -1363,9 +1360,18 @@ async function parsePdfMeasurements(pdfUrl) {
       throw new Error("Failed to fetch PDF: Buffer is empty");
     }
     console.log(`Analyzing PDF content with pdf-parse... (${pdfUrl})`);
+    let pdfParseFn;
+    try {
+      const { createRequire } = await import("module");
+      const req = createRequire(import.meta.url);
+      pdfParseFn = req("pdf-parse");
+    } catch (importError) {
+      console.error("Failed to load pdf-parse:", importError);
+      throw new Error(`pdf-parse module not available: ${importError.message}`);
+    }
     let pdfData;
     try {
-      pdfData = await pdfParse(buffer);
+      pdfData = await pdfParseFn(buffer);
     } catch (parseError) {
       console.error("PDF parse error:", parseError);
       throw new Error(`PDF parsing failed: ${parseError.message}`);
