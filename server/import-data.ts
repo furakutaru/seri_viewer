@@ -7,6 +7,8 @@ import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 import iconv from 'iconv-lite';
 import jschardet from 'jschardet';
+// @ts-ignore - pdf-parse types are tricky sometimes
+import pdfParse from 'pdf-parse';
 import { horses, sales } from '../drizzle/schema';
 import { getDb } from './db';
 import { eq } from 'drizzle-orm';
@@ -294,34 +296,29 @@ export async function parsePdfMeasurements(pdfUrl: string) {
     // キャッシュから取得または新規ダウンロード
     const buffer = await fetchAndCachePdf(pdfUrl);
 
-    const tmpDir = os.tmpdir();
-    const pdfPath = path.join(tmpDir, `temp_${Date.now()}.pdf`);
-    const txtPath = path.join(tmpDir, `temp_${Date.now()}.txt`);
-
-    if (buffer) {
-      fs.writeFileSync(pdfPath, buffer instanceof Buffer ? buffer : Buffer.from(buffer));
-    } else {
-      throw new Error('Failed to fetch PDF');
+    if (!buffer) {
+      throw new Error('Failed to fetch PDF: Buffer is empty');
     }
 
+    console.log(`Analyzing PDF content with pdf-parse... (${pdfUrl})`);
+
+    // PDFをパース (純粋なNode.jsライブラリを使用。Vercel等のバイナリ未対応環境でも動作します)
+    let pdfData;
     try {
-      execSync(`pdftotext -layout "${pdfPath}" "${txtPath}"`, { encoding: 'utf-8' });
-    } catch (err) {
-      console.warn('pdftotext command failed');
-      throw new Error('PDF conversion failed');
+      pdfData = await pdfParse(buffer);
+    } catch (parseError: any) {
+      console.error('PDF parse error:', parseError);
+      throw new Error(`PDF parsing failed: ${parseError.message}`);
     }
 
-    const text = fs.readFileSync(txtPath, 'utf-8');
-    const measurements = parseMeasurementText(text);
-
-    try {
-      fs.unlinkSync(pdfPath);
-      fs.unlinkSync(txtPath);
-    } catch (e) {
-      // 削除失敗を無視
+    if (!pdfData || !pdfData.text) {
+      console.warn('PDF parsed but no text content found');
+      return [];
     }
 
-    console.log(`Successfully extracted ${measurements.length} measurements`);
+    const measurements = parseMeasurementText(pdfData.text);
+
+    console.log(`Successfully extracted ${measurements.length} measurements from ${pdfUrl}`);
     return measurements;
   } catch (error) {
     console.error('Error parsing PDF:', error);
