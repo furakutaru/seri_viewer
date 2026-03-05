@@ -5,6 +5,7 @@ interface ImportResult {
   success: number;
   skipped: number;
   errors: string[];
+  total?: number;
 }
 
 export const JbisImportForm: React.FC = () => {
@@ -34,7 +35,8 @@ export const JbisImportForm: React.FC = () => {
     setResults(null);
     
     try {
-      const result = await importJbisUrls.mutateAsync({ saleUrl: saleUrl.trim() });
+      // 単一URLもバッチ処理を使用
+      const result = await importMultipleJbisUrls.mutateAsync({ saleUrls: [saleUrl.trim()] });
       setResults(result);
     } catch (error) {
       console.error('Import failed:', error);
@@ -61,7 +63,7 @@ export const JbisImportForm: React.FC = () => {
     
     try {
       const result = await importMultipleJbisUrls.mutateAsync({ saleUrls: urls });
-      setResults(result.total);
+      setResults(result);
     } catch (error) {
       console.error('Multiple import failed:', error);
       setResults({
