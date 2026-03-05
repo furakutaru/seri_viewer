@@ -356,9 +356,9 @@ export const appRouter = router({
             return { success: 0, skipped: 0, errors: ['No horse data found'], total: 0 };
           }
           
-          // 高速バッチ処理を実行（30件ずつ）
+          // 高速バッチ処理を実行（20件ずつ）- タイムアウト対策
           console.log(`[API] Starting batch processing for ${horseData.length} horses`);
-          const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 30, 1);
+          const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 20, 1);
           console.log(`[API] Batch processing completed`);
           
           const result = {
@@ -404,8 +404,8 @@ export const appRouter = router({
               continue;
             }
             
-            // 高速バッチ処理を実行（30件ずつ）
-            const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 30, 1);
+            // 高速バッチ処理を実行（20件ずつ）- タイムアウト対策
+            const batchResult = await jbisHorseLinkerService.linkJbisUrlsToHorsesBatch(horseData, 20, 1);
             
             totalResult.success += batchResult.summary.updated + batchResult.summary.sireUpdated + batchResult.summary.damUpdated;
             totalResult.total += batchResult.totalProcessed;
