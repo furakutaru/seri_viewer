@@ -3,9 +3,6 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import viteConfig from "../../vite.config";
-
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
@@ -13,12 +10,20 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as const,
   };
 
+  const viteName = "vite";
+  const { createServer: createViteServer } = await import(/* @vite-ignore */ viteName);
+
+  const configName = "../../vite.config";
+  const viteConfigModule = await import(/* @vite-ignore */ configName);
+  const viteConfig = viteConfigModule.default || viteConfigModule;
+
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
     server: serverOptions,
     appType: "custom",
   });
+
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
