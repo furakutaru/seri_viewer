@@ -7,6 +7,9 @@ import fetch from 'node-fetch';
 import * as cheerio from 'cheerio';
 import iconv from 'iconv-lite';
 import jschardet from 'jschardet';
+// pdf-parseのindex.jsは module.parent チェックがあるため内部ライブラリを直接参照
+// @ts-ignore
+import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 import { horses, sales } from '../drizzle/schema';
 import { getDb } from './db';
 import { eq } from 'drizzle-orm';
@@ -294,26 +297,12 @@ export async function parsePdfMeasurements(pdfUrl: string) {
     // キャッシュから取得または新規ダウンロード
     const buffer = await fetchAndCachePdf(pdfUrl);
 
-    if (!buffer) {
-      throw new Error('Failed to fetch PDF: Buffer is empty');
-    }
-
     console.log(`Analyzing PDF content with pdf-parse... (${pdfUrl})`);
 
-    // PDFをパース（起動時クラッシュを防ぐため動的インポートを使用）
-    let pdfParseFn: (buffer: Buffer) => Promise<{ text: string }>;
-    try {
-      const { createRequire } = await import('module');
-      const req = createRequire(import.meta.url);
-      pdfParseFn = req('pdf-parse');
-    } catch (importError: any) {
-      console.error('Failed to load pdf-parse:', importError);
-      throw new Error(`pdf-parse module not available: ${importError.message}`);
-    }
-
+    // PDFをパース（api/index.jsビルド時にpdf-parseがバンドル済み）
     let pdfData;
     try {
-      pdfData = await pdfParseFn(buffer);
+      pdfData = await pdfParse(buffer);
     } catch (parseError: any) {
       console.error('PDF parse error:', parseError);
       throw new Error(`PDF parsing failed: ${parseError.message}`);
