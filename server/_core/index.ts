@@ -1,4 +1,4 @@
-// Removed dotenv/config for Vercel compatibility
+import cookieParser from "cookie-parser";
 import express from "express";
 import cors from "cors";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -29,7 +29,6 @@ function configureApp(app: express.Express) {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   // Cookie parser (Required for authentication to read cookies)
-  const cookieParser = require("cookie-parser");
   app.use(cookieParser());
 
   console.log("[Server] Configuring routes...");
