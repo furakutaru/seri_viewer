@@ -29,20 +29,30 @@ export default function Home() {
 
         <div className="relative mx-auto max-w-7xl px-6 lg:px-8 text-center">
           <h2 className="text-5xl font-black tracking-tight text-white sm:text-7xl mb-6">
-            競走馬セリ市を、<br /><span className="text-blue-500">もっとスマートに。</span>
+            さぁ、馬を見よう
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300 font-medium">
-            HBA公式セリ市のカタログ、画像、血統PDF、測尺データを一元管理。<br />
-            あなたの馬選びを強力にサポートする高機能ビューワー。
+            血統から測尺、馬体写真、JBISリンクまで。精査に必要なデータを1ページにまとめました。<br />
+            無駄な情報収集の時間を終わらせ、純粋な馬選びに没頭できるビューワーです。
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
-            <Button
-              size="lg"
-              onClick={() => setLocation('/horses')}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold px-8 py-6 rounded-2xl shadow-2xl shadow-blue-500/20 transition-all hover:scale-105"
-            >
-              上場馬一覧を見る
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                size="lg"
+                onClick={() => setLocation('/horses')}
+                className="bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold px-8 py-6 rounded-2xl shadow-2xl shadow-blue-500/20 transition-all hover:scale-105"
+              >
+                上場馬一覧を見る
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                onClick={() => setLocation('/login')}
+                className="bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold px-8 py-6 rounded-2xl shadow-2xl shadow-blue-500/20 transition-all hover:scale-105"
+              >
+                会員登録/ログイン
+              </Button>
+            )}
           </div>
         </div>
       </div>
