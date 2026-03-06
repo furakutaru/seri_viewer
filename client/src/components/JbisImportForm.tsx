@@ -20,7 +20,7 @@ export const JbisImportForm: React.FC = () => {
 
   const importJbisUrls = trpc.admin.importJbisUrls.useMutation();
   const importMultipleJbisUrls = trpc.admin.importMultipleJbisUrls.useMutation();
-  const { data: jbisStatus } = trpc.admin.checkJbisStatus.useQuery();
+  const { data: jbisStatus, refetch: refetchJbisStatus } = trpc.admin.checkJbisStatus.useQuery();
 
   // リダイレクトを無効化してエラー確認できるようにする
   // useEffect(() => {
@@ -83,6 +83,9 @@ export const JbisImportForm: React.FC = () => {
       } while (totalResult.hasMore);
       
       console.log(`[Client] Final result: ${totalResult.success} updated, ${totalResult.total} total`);
+      
+      // JBISステータスを再取得してキャッシュを更新
+      await refetchJbisStatus();
       
     } catch (error) {
       console.error('Import failed:', error);
