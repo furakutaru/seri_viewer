@@ -111,7 +111,7 @@ export default function Home() {
         </div>
 
         {/* 機能紹介 */}
-        <div className="bg-slate-50 -mx-6 px-6 py-24">
+        <div className="bg-slate-50 -mx-6 px-6">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
               <h3 className="text-3xl font-black text-slate-800 mb-4">機能紹介</h3>
