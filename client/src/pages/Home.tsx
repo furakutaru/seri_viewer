@@ -23,7 +23,16 @@ export default function Home() {
       <Header />
 
       {/* ヒーローセクション */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-12 sm:py-16">
+      <div 
+        className="relative overflow-hidden bg-cover bg-center bg-no-repeat py-12 sm:py-16"
+        style={{ 
+          backgroundImage: "url('/images/hero-horse-auction.jpg')",
+          backgroundAttachment: 'fixed',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="absolute inset-0 bg-slate-900 opacity-70" />
         <div className="relative mx-auto max-w-7xl px-6 lg:px-8 text-center">
           <h2 className="text-5xl font-black tracking-tight text-white sm:text-6xl mb-6">
             さぁ、馬を見よう
