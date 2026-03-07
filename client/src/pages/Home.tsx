@@ -131,6 +131,23 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* 注意書き・問い合わせ先 */}
+        <div className="mt-24 mb-16">
+          <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-8">
+            <div className="text-center space-y-4">
+              <p className="text-slate-700 leading-relaxed font-medium">
+                本サイトは現状タブレット、PCでの閲覧を想定しておりスマートフォン対応は暫時対応予定です。<br />
+                また、本サイトは本職エンジニアではない開発者が作成しており至らぬ点も有るかとは思いますがその際はフィードバック頂けると幸いです。
+              </p>
+              <div className="pt-4 border-t border-amber-200">
+                <p className="text-slate-700 font-medium">
+                  開発者・お問い合わせ先：<a href="https://x.com/furakutaru" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 underline font-bold">@furakutaru</a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
