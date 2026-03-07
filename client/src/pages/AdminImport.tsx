@@ -8,6 +8,7 @@ import { trpc } from '@/lib/trpc';
 import { Header } from '@/components/Header';
 import { JbisImportForm } from '@/components/JbisImportForm';
 import { AdminRouteGuard } from '@/components/AdminRouteGuard';
+import { UserManagement } from '@/components/UserManagement';
 import {
   Select,
   SelectContent,
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Plus, Settings, Eye, Download, Trash2, Calendar } from 'lucide-react';
+import { Plus, Settings, Eye, Download, Trash2, Calendar, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminImport() {
@@ -170,7 +171,7 @@ function AdminImportContent() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-white/50 backdrop-blur p-1 h-auto rounded-xl shadow-sm">
+          <TabsList className="grid w-full grid-cols-4 bg-white/50 backdrop-blur p-1 h-auto rounded-xl shadow-sm">
             <TabsTrigger value="sales" className="py-2.5 font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 transition-all">
               <Settings className="w-4 h-4 mr-2" />
               セリ管理・配信設定
@@ -182,6 +183,10 @@ function AdminImportContent() {
             <TabsTrigger value="jbis" className="py-2.5 font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 transition-all">
               <Plus className="w-4 h-4 mr-2" />
               JBISデータ更新
+            </TabsTrigger>
+            <TabsTrigger value="users" className="py-2.5 font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 transition-all">
+              <Users className="w-4 h-4 mr-2" />
+              ユーザー管理
             </TabsTrigger>
           </TabsList>
 
@@ -464,6 +469,10 @@ function AdminImportContent() {
 
           <TabsContent value="jbis" className="mt-6">
             <JbisImportForm />
+          </TabsContent>
+
+          <TabsContent value="users" className="mt-6">
+            <UserManagement />
           </TabsContent>
         </Tabs>
       </div>

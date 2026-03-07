@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { InsertUser, users, horses, userChecks, sales, userCheckItems, userCheckResults, pedigreeUrls } from "../drizzle/schema";
@@ -707,6 +707,56 @@ export async function getAllPedigreeUrls() {
     return await db.select().from(pedigreeUrls);
   } catch (error) {
     console.error("[Database] Failed to get all pedigree URLs:", error);
+    return [];
+  }
+}
+
+export async function getAllUsersWithStats(offset: number = 0, limit: number = 20) {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    // First get all users with pagination
+    const usersList = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        createdAt: users.createdAt,
+        lastSignedIn: users.lastSignedIn,
+      })
+      .from(users)
+      .orderBy(desc(users.lastSignedIn))
+      .limit(limit)
+      .offset(offset);
+
+    // Then get stats for each user
+    const usersWithStats = await Promise.all(
+      usersList.map(async (user) => {
+        const userChecksData = await db
+          .select()
+          .from(userChecks)
+          .where(eq(userChecks.userId, user.id));
+
+        // Count only those with actual memo content (not empty)
+        const memoCount = userChecksData.filter(
+          check => check.memo && check.memo.trim() !== ''
+        ).length;
+
+        const eliminatedCount = userChecksData.filter(check => check.isEliminated).length;
+
+        return {
+          ...user,
+          memoCount,
+          eliminatedCount,
+        };
+      })
+    );
+
+    return usersWithStats;
+  } catch (error) {
+    console.error("[Database] Failed to get users with stats:", error);
     return [];
   }
 }

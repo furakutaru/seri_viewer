@@ -27,7 +27,8 @@ import {
   savePedigreeUrl,
   getDb,
   getAllPedigreeUrls,
-  getUniqueSires
+  getUniqueSires,
+  getAllUsersWithStats
 } from "./db";
 import { horses, sales, userChecks, userCheckItems, userCheckResults, pedigreeUrls } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
@@ -493,6 +494,17 @@ export const appRouter = router({
           console.error('[API] Batch JBIS import failed:', error);
           throw new Error(`Batch JBIS import failed: ${error.message}`);
         }
+      }),
+
+    // ユーザー管理
+    users: protectedProcedure
+      .input(z.object({
+        offset: z.number().optional().default(0),
+        limit: z.number().optional().default(20),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        return await getAllUsersWithStats(input.offset, input.limit);
       }),
   }),
 });
