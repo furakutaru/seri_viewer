@@ -15,7 +15,7 @@ import { Header } from '@/components/Header';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Edit, Plus, CheckSquare, Square } from 'lucide-react';
+import { Trash2, Edit, Plus, CheckSquare, Square, ChevronDown } from 'lucide-react';
 
 export default function MyPage() {
     const [, setLocation] = useLocation();
@@ -107,6 +107,14 @@ export default function MyPage() {
             return h.userCheck?.isEliminated;
         });
     }, [horses]);
+
+    // タブの選択肢
+    const tabOptions = [
+        { value: 'evaluation', label: '評価リスト' },
+        { value: 'comparison', label: '馬体比較ビュー' },
+        { value: 'checklist', label: 'チェックリスト管理' },
+        { value: 'eliminated', label: `除外管理 (${eliminatedHorses.length})` }
+    ];
 
     const calculateChecklistScore = (horse: any) => {
         return horse.userCheck?.totalScore || 0;
@@ -244,16 +252,40 @@ export default function MyPage() {
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="mb-8 grid grid-cols-4 w-full max-w-4xl mx-auto bg-white/50 backdrop-blur shadow-sm p-1 rounded-xl h-auto">
-                            <TabsTrigger value="evaluation" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">評価リスト</TabsTrigger>
-                            <TabsTrigger value="comparison" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">馬体比較ビュー</TabsTrigger>
-                            <TabsTrigger value="checklist" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">チェックリスト管理</TabsTrigger>
-                            <TabsTrigger value="eliminated" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">除外管理 ({eliminatedHorses.length})</TabsTrigger>
-                        </TabsList>
+                        {/* デスクトップ用タブ */}
+                        <div className="hidden md:block mb-8">
+                            <TabsList className="grid grid-cols-4 w-full max-w-4xl mx-auto bg-white/50 backdrop-blur shadow-sm p-1 rounded-xl h-auto">
+                                <TabsTrigger value="evaluation" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">評価リスト</TabsTrigger>
+                                <TabsTrigger value="comparison" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">馬体比較ビュー</TabsTrigger>
+                                <TabsTrigger value="checklist" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">チェックリスト管理</TabsTrigger>
+                                <TabsTrigger value="eliminated" className="font-bold py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600">除外管理 ({eliminatedHorses.length})</TabsTrigger>
+                            </TabsList>
+                        </div>
+
+                        {/* モバイル用ドロップダウン */}
+                        <div className="md:hidden mb-6">
+                            <Select value={activeTab} onValueChange={setActiveTab}>
+                                <SelectTrigger className="w-full bg-white/50 backdrop-blur shadow-sm border-0 rounded-xl px-4 py-3 font-bold text-slate-700">
+                                    <SelectValue placeholder="メニューを選択" />
+                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white/95 backdrop-blur border-0 shadow-lg rounded-xl">
+                                    {tabOptions.map((option) => (
+                                        <SelectItem 
+                                            key={option.value} 
+                                            value={option.value}
+                                            className="font-bold text-slate-700 focus:bg-blue-50 focus:text-blue-600"
+                                        >
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
 
                         {/* 絞り込みフィルター (評価リストと比較ビュー用) */}
                         {(activeTab === 'evaluation' || activeTab === 'comparison') && (
-                            <div className="flex justify-center gap-2 mb-8">
+                            <div className="flex justify-center gap-2 mb-8 overflow-x-auto pb-2">
                                 {[
                                     { id: 'ALL', label: 'すべて' },
                                     { id: '◎', label: '◎のみ' },
@@ -265,7 +297,7 @@ export default function MyPage() {
                                         variant={evalFilter === f.id ? "default" : "outline"}
                                         size="sm"
                                         onClick={() => setEvalFilter(f.id as any)}
-                                        className={`font-bold rounded-full px-6 ${evalFilter === f.id ? "bg-blue-600" : "bg-white text-gray-600 border-gray-200"
+                                        className={`font-bold rounded-full px-6 flex-shrink-0 ${evalFilter === f.id ? "bg-blue-600" : "bg-white text-gray-600 border-gray-200"
                                             }`}
                                     >
                                         {f.label}
