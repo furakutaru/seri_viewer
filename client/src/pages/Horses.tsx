@@ -221,7 +221,8 @@ export default function Horses() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 馬を検索
               </label>
-              <div className="flex gap-4">
+              {/* デスクトップ用 */}
+              <div className="hidden md:flex gap-4">
                 <Input
                   type="text"
                   placeholder="上場番号、父馬名、母馬名、性別、毛色、セリ名で検索..."
@@ -233,6 +234,25 @@ export default function Horses() {
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
                   className={`h-auto px-6 border-2 font-bold flex gap-2 ${showFilters ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-gray-200'}`}
+                >
+                  <Filter className="w-5 h-5" />
+                  絞り込み
+                  {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </Button>
+              </div>
+              {/* モバイル用 */}
+              <div className="md:hidden space-y-3">
+                <Input
+                  type="text"
+                  placeholder="上場番号、父馬名、母馬名、性別、毛色、セリ名で検索..."
+                  value={searchTerm}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                  className="w-full text-lg py-6"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`w-full h-auto px-6 border-2 font-bold flex gap-2 justify-center ${showFilters ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-gray-200'}`}
                 >
                   <Filter className="w-5 h-5" />
                   絞り込み
@@ -291,7 +311,73 @@ export default function Horses() {
                 {/* 体高・胸囲 */}
                 <div className="space-y-3 lg:col-span-2">
                   <h4 className="text-xs md:text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">馬体計測値 (〇〇 〜 〇〇)</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  {/* デスクトップ用 */}
+                  <div className="hidden md:block">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">体高</Label>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            placeholder="最小"
+                            value={filters.heightMin}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, heightMin: e.target.value })}
+                            className="h-9 px-2 text-sm bg-white"
+                          />
+                          <span className="text-gray-400">~</span>
+                          <Input
+                            type="number"
+                            placeholder="最大"
+                            value={filters.heightMax}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, heightMax: e.target.value })}
+                            className="h-9 px-2 text-sm bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">胸囲</Label>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            placeholder="最小"
+                            value={filters.girthMin}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, girthMin: e.target.value })}
+                            className="h-9 px-2 text-sm bg-white"
+                          />
+                          <span className="text-gray-400">~</span>
+                          <Input
+                            type="number"
+                            placeholder="最大"
+                            value={filters.girthMax}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, girthMax: e.target.value })}
+                            className="h-9 px-2 text-sm bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">管囲</Label>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            placeholder="最小"
+                            value={filters.cannonMin}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, cannonMin: e.target.value })}
+                            className="h-9 px-2 text-sm bg-white"
+                          />
+                          <span className="text-gray-400">~</span>
+                          <Input
+                            type="number"
+                            placeholder="最大"
+                            value={filters.cannonMax}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, cannonMax: e.target.value })}
+                            className="h-9 px-2 text-sm bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* モバイル用 */}
+                  <div className="md:hidden space-y-4">
                     <div className="space-y-1">
                       <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">体高</Label>
                       <div className="flex items-center gap-1">
@@ -300,7 +386,7 @@ export default function Horses() {
                           placeholder="最小"
                           value={filters.heightMin}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, heightMin: e.target.value })}
-                          className="h-9 px-2 text-sm bg-white"
+                          className="h-9 px-2 text-sm bg-white flex-1"
                         />
                         <span className="text-gray-400">~</span>
                         <Input
@@ -308,7 +394,7 @@ export default function Horses() {
                           placeholder="最大"
                           value={filters.heightMax}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, heightMax: e.target.value })}
-                          className="h-9 px-2 text-sm bg-white"
+                          className="h-9 px-2 text-sm bg-white flex-1"
                         />
                       </div>
                     </div>
@@ -320,7 +406,7 @@ export default function Horses() {
                           placeholder="最小"
                           value={filters.girthMin}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, girthMin: e.target.value })}
-                          className="h-9 px-2 text-sm bg-white"
+                          className="h-9 px-2 text-sm bg-white flex-1"
                         />
                         <span className="text-gray-400">~</span>
                         <Input
@@ -328,7 +414,7 @@ export default function Horses() {
                           placeholder="最大"
                           value={filters.girthMax}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, girthMax: e.target.value })}
-                          className="h-9 px-2 text-sm bg-white"
+                          className="h-9 px-2 text-sm bg-white flex-1"
                         />
                       </div>
                     </div>
@@ -340,7 +426,7 @@ export default function Horses() {
                           placeholder="最小"
                           value={filters.cannonMin}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, cannonMin: e.target.value })}
-                          className="h-9 px-2 text-sm bg-white"
+                          className="h-9 px-2 text-sm bg-white flex-1"
                         />
                         <span className="text-gray-400">~</span>
                         <Input
@@ -348,7 +434,7 @@ export default function Horses() {
                           placeholder="最大"
                           value={filters.cannonMax}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, cannonMax: e.target.value })}
-                          className="h-9 px-2 text-sm bg-white"
+                          className="h-9 px-2 text-sm bg-white flex-1"
                         />
                       </div>
                     </div>
@@ -445,7 +531,7 @@ export default function Horses() {
           </Card>
         ) : error ? (
           <Card className="p-8 text-center bg-red-50 border border-red-200">
-            <p className="text-red-600">エラーが発生しました: {error.message}</p>
+            <p className="text-red-600">エラーが発生しました: {error?.message}</p>
           </Card>
         ) : filteredHorses.length === 0 ? (
           <Card className="p-12 text-center text-gray-500 text-lg">
