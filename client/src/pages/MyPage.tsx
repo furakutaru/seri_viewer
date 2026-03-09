@@ -683,7 +683,7 @@ export default function MyPage() {
                             <div className="space-y-6">
                                 {/* 作成ボタン */}
                                 <Card className="p-6 bg-white/50 backdrop-blur">
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-center">
                                         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                                             <DialogTrigger asChild>
                                                 <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold">
