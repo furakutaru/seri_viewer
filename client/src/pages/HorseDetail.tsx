@@ -320,7 +320,7 @@ export default function HorseDetail() {
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">上場番号 {horse.lotNumber}</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">上場番号 {horse.lotNumber}</h1>
           </div>
           <div className="flex gap-4">
             <Button
@@ -344,7 +344,7 @@ export default function HorseDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* 写真 */}
             <Card className="p-6 shadow-lg overflow-hidden">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">馬体画像</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">馬体画像</h2>
               <ImageCarousel
                 images={images}
                 alt={`上場番号 ${horse.lotNumber}`}
@@ -355,7 +355,7 @@ export default function HorseDetail() {
             {/* 基本情報 & 測尺 */}
             <Card className="p-6 shadow-lg">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">基本情報 / 測尺</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">基本情報 / 測尺</h2>
                 {horse.jbisUrl && (
                   <a
                     href={horse.jbisUrl}
@@ -426,7 +426,7 @@ export default function HorseDetail() {
             {/* 血統情報 & PDF */}
             <Card className="p-6 shadow-lg">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">血統情報</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900">血統情報</h2>
                 {pedigreePdfUrl && (
                   <a
                     href={pedigreePdfUrl}
@@ -501,7 +501,7 @@ export default function HorseDetail() {
 
             {/* 出品者・生産者情報 */}
             <Card className="p-6 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">出品情報</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">出品情報</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-start gap-3">
                   <div className="p-2 bg-gray-100 rounded-lg text-lg">🏢</div>
@@ -525,7 +525,7 @@ export default function HorseDetail() {
           <div className="space-y-6">
             {/* 評価 */}
             <Card className="p-6 shadow-lg">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <span>📝</span>
                 <span>あなたの検討メモ</span>
               </h2>
@@ -561,7 +561,7 @@ export default function HorseDetail() {
                 {/* Checklist */}
                 {checklistItems && checklistItems.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                       <span>✓</span>
                       <span>チェックリスト</span>
                     </h3>
@@ -637,7 +637,7 @@ export default function HorseDetail() {
             {/* 人気度統計 */}
             {popularityStats && popularityStats.total > 0 && (
               <Card className="p-6 shadow-lg">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">みんなの評価</h2>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-6">みんなの評価</h2>
                 <div className="space-y-3">
                   {[
                     { label: '◎ 評価', count: popularityStats.countExcellent, color: 'bg-green-600', text: 'text-green-600' },

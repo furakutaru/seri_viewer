@@ -194,14 +194,14 @@ export default function Horses() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <div className="flex items-center gap-4 mb-2">
-              <h1 className="text-4xl font-bold text-gray-900">上場馬一覧</h1>
+              <h1 className="text-2xl md:text-4xl font-bold text-gray-900">上場馬一覧</h1>
               {filters.saleId && horses?.find(h => h.saleId === filters.saleId)?.sale?.status === 'draft' && (
                 <Badge className="bg-amber-100 text-amber-700 border-amber-200 font-black shadow-none border">
                   プレビュー中
                 </Badge>
               )}
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm md:text-base">
               {filters.saleId && horses?.find(h => h.saleId === filters.saleId)?.sale
                 ? `${horses?.find(h => h.saleId === filters.saleId)?.sale?.saleName} の情報を表示中`
                 : '登録されている馬の一覧を表示しています'}
@@ -240,7 +240,7 @@ export default function Horses() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
                 {/* 性別 */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">性別</h4>
+                  <h4 className="text-xs md:text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">性別</h4>
                   <div className="flex flex-wrap gap-4">
                     {['牡', '牝', 'セン'].map((sex) => (
                       <div key={sex} className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
@@ -268,7 +268,7 @@ export default function Horses() {
 
                 {/* 父馬 (Autocomplete via Datalist) */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">父馬</h4>
+                  <h4 className="text-xs md:text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">父馬</h4>
                   <Input
                     list="sires-list"
                     placeholder="父馬名を入力..."
@@ -285,7 +285,7 @@ export default function Horses() {
 
                 {/* 体高・胸囲 */}
                 <div className="space-y-3 lg:col-span-2">
-                  <h4 className="text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">馬体計測値 (〇〇 〜 〇〇)</h4>
+                  <h4 className="text-xs md:text-sm font-bold text-gray-900 border-l-4 border-blue-500 pl-2">馬体計測値 (〇〇 〜 〇〇)</h4>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">体高</Label>

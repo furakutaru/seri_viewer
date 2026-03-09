@@ -165,8 +165,8 @@ function AdminImportContent() {
       <div className="max-w-7xl mx-auto px-8 pt-8">
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-4xl font-black text-gray-900 mb-2">管理メニュー</h1>
-            <p className="text-gray-600">セリ情報の管理とデータ取り込みを行います</p>
+            <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-2">管理メニュー</h1>
+            <p className="text-gray-600 text-sm md:text-base">セリ情報の管理とデータ取り込みを行います</p>
           </div>
         </div>
 
@@ -198,7 +198,7 @@ function AdminImportContent() {
                     <Settings className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-slate-800">配信フロー</h2>
+                    <h2 className="font-bold text-slate-800 text-sm md:text-base">配信フロー</h2>
                     <p className="text-xs text-slate-500 font-medium">下書き状態で取り込み・確認を行い、問題なければ公開してください</p>
                   </div>
                 </div>
@@ -272,7 +272,7 @@ function AdminImportContent() {
                               ID: {sale.id}
                             </span>
                           </div>
-                          <h3 className="text-xl font-bold text-slate-800 mb-1">{sale.saleName}</h3>
+                          <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-1">{sale.saleName}</h3>
                           <div className="flex items-center gap-4 text-xs text-slate-500 font-bold uppercase tracking-wider">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />

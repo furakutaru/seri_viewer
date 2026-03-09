@@ -246,8 +246,8 @@ export default function MyPage() {
                     {/* ヘッダー */}
                     <div className="flex justify-between items-center mb-8">
                         <div>
-                            <h1 className="text-4xl font-bold text-gray-900 mb-2">マイページ</h1>
-                            <p className="text-gray-600">あなたの評価・検討状況を管理します</p>
+                            <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">マイページ</h1>
+                            <p className="text-gray-600 text-sm md:text-lg">あなたの評価・検討状況を管理します</p>
                         </div>
                     </div>
 
@@ -267,7 +267,6 @@ export default function MyPage() {
                             <Select value={activeTab} onValueChange={setActiveTab}>
                                 <SelectTrigger className="w-full bg-white/50 backdrop-blur shadow-sm border-0 rounded-xl px-4 py-3 font-bold text-slate-700">
                                     <SelectValue placeholder="メニューを選択" />
-                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-white/95 backdrop-blur border-0 shadow-lg rounded-xl">
                                     {tabOptions.map((option) => (
@@ -285,24 +284,52 @@ export default function MyPage() {
 
                         {/* 絞り込みフィルター (評価リストと比較ビュー用) */}
                         {(activeTab === 'evaluation' || activeTab === 'comparison') && (
-                            <div className="flex justify-center gap-2 mb-8 overflow-x-auto pb-2">
-                                {[
-                                    { id: 'ALL', label: 'すべて' },
-                                    { id: '◎', label: '◎のみ' },
-                                    { id: '○', label: '○のみ' },
-                                    { id: '△', label: '△のみ' },
-                                ].map((f) => (
-                                    <Button
-                                        key={f.id}
-                                        variant={evalFilter === f.id ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setEvalFilter(f.id as any)}
-                                        className={`font-bold rounded-full px-6 flex-shrink-0 ${evalFilter === f.id ? "bg-blue-600" : "bg-white text-gray-600 border-gray-200"
-                                            }`}
-                                    >
-                                        {f.label}
-                                    </Button>
-                                ))}
+                            <div className="mb-8">
+                                {/* デスクトップ用フィルターボタン */}
+                                <div className="hidden md:flex justify-center gap-2">
+                                    {[
+                                        { id: 'ALL', label: 'すべて' },
+                                        { id: '◎', label: '◎のみ' },
+                                        { id: '○', label: '○のみ' },
+                                        { id: '△', label: '△のみ' },
+                                    ].map((f) => (
+                                        <Button
+                                            key={f.id}
+                                            variant={evalFilter === f.id ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setEvalFilter(f.id as any)}
+                                            className={`font-bold rounded-full px-6 ${evalFilter === f.id ? "bg-blue-600" : "bg-white text-gray-600 border-gray-200"
+                                                }`}
+                                        >
+                                            {f.label}
+                                        </Button>
+                                    ))}
+                                </div>
+
+                                {/* モバイル用ドロップダウン */}
+                                <div className="md:hidden">
+                                    <Select value={evalFilter} onValueChange={(value) => setEvalFilter(value as any)}>
+                                        <SelectTrigger className="w-full bg-white/50 backdrop-blur shadow-sm border-0 rounded-xl px-4 py-3 font-bold text-slate-700">
+                                            <SelectValue placeholder="評価で絞り込み" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white/95 backdrop-blur border-0 shadow-lg rounded-xl">
+                                            {[
+                                                { id: 'ALL', label: 'すべて' },
+                                                { id: '◎', label: '◎のみ' },
+                                                { id: '○', label: '○のみ' },
+                                                { id: '△', label: '△のみ' },
+                                            ].map((f) => (
+                                                <SelectItem 
+                                                    key={f.id} 
+                                                    value={f.id}
+                                                    className="font-bold text-slate-700 focus:bg-blue-50 focus:text-blue-600"
+                                                >
+                                                    {f.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         )}
 
