@@ -15,7 +15,7 @@ import { Header } from '@/components/Header';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Edit, Plus, CheckSquare, Square, ChevronDown, ChevronRight } from 'lucide-react';
+import { Trash2, Edit, Plus, CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function MyPage() {
     const [, setLocation] = useLocation();
@@ -131,10 +131,10 @@ export default function MyPage() {
         setExpandedRows(newExpanded);
     };
 
-    const truncatePedigree = (sireName: string, damName: string, maxLength: number = 20) => {
+    const truncatePedigree = (sireName: string, damName: string, maxLength: number = 30) => {
         const fullText = `${sireName}×${damName}`;
         if (fullText.length <= maxLength) return fullText;
-        return `${sireName.slice(0, Math.max(5, maxLength - 10))}...×${damName.slice(0, 5)}`;
+        return `${sireName}×${damName}`;
     };
 
     const handleRestore = async (horseId: number, evaluation: any, memo: string) => {
@@ -428,62 +428,57 @@ export default function MyPage() {
                                                     className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                                                     onClick={() => toggleRowExpansion(horse.id)}
                                                 >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    {/* 1段目：上場番号、評価、性別 */}
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-3">
                                                             {/* 上場番号 */}
-                                                            <div className="flex-shrink-0">
-                                                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
-                                                                    {horse.lotNumber}
-                                                                </div>
+                                                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                                                                {horse.lotNumber}
                                                             </div>
                                                             
                                                             {/* 評価バッジ */}
-                                                            <div className="flex-shrink-0">
-                                                                <Badge className={`text-xs font-black px-2 py-1 ${horse.userCheck?.evaluation === '◎' ? 'bg-green-100 text-green-700 border-green-200' :
-                                                                    horse.userCheck?.evaluation === '○' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                                                        'bg-amber-100 text-amber-700 border-amber-200'
-                                                                    }`}>
-                                                                    {horse.userCheck?.evaluation}
-                                                                </Badge>
-                                                            </div>
+                                                            <Badge className={`text-xs font-black px-2 py-1 ${horse.userCheck?.evaluation === '◎' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                                horse.userCheck?.evaluation === '○' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                                    'bg-amber-100 text-amber-700 border-amber-200'
+                                                                }`}>
+                                                                {horse.userCheck?.evaluation}
+                                                            </Badge>
 
                                                             {/* 性別 */}
-                                                            <div className="flex-shrink-0">
-                                                                <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${horse.sex === '牡' ? 'bg-blue-100 text-blue-800' :
-                                                                    horse.sex === '牝' ? 'bg-pink-100 text-pink-800' :
-                                                                        'bg-green-100 text-green-800'
-                                                                    }`}>
-                                                                    {horse.sex}
-                                                                </span>
-                                                            </div>
-
-                                                            {/* 血統 */}
-                                                            <div className="flex-1 min-w-0">
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div className="font-bold text-blue-900 text-sm truncate">
-                                                                            {truncatePedigree(horse.sireName, horse.damName)}
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p className="text-sm">{horse.sireName} × {horse.damName}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </div>
+                                                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${horse.sex === '牡' ? 'bg-blue-100 text-blue-800' :
+                                                                horse.sex === '牝' ? 'bg-pink-100 text-pink-800' :
+                                                                    'bg-green-100 text-green-800'
+                                                                }`}>
+                                                                {horse.sex}
+                                                            </span>
                                                         </div>
 
                                                         {/* 展開ボタン */}
-                                                        <div className="flex-shrink-0 ml-2">
+                                                        <div className="flex-shrink-0">
                                                             {expandedRows.has(horse.id) ? (
-                                                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                                <ChevronUp className="w-5 h-5 text-gray-400" />
                                                             ) : (
-                                                                <ChevronRight className="w-5 h-5 text-gray-400" />
+                                                                <ChevronDown className="w-5 h-5 text-gray-400" />
                                                             )}
                                                         </div>
                                                     </div>
 
-                                                    {/* 測尺データ */}
-                                                    <div className="flex gap-4 mt-3 text-xs">
+                                                    {/* 2段目：血統 */}
+                                                    <div className="mb-3">
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div className="font-bold text-blue-900 text-sm leading-tight">
+                                                                    {truncatePedigree(horse.sireName, horse.damName)}
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p className="text-sm">{horse.sireName} × {horse.damName}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </div>
+
+                                                    {/* 3段目：測尺データ */}
+                                                    <div className="flex gap-4 text-xs">
                                                         <div className="flex items-center gap-1">
                                                             <span className="text-gray-500">体:</span>
                                                             <span className="font-bold text-blue-700">{horse.height || '-'}</span>
