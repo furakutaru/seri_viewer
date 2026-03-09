@@ -15,7 +15,7 @@ import { Header } from '@/components/Header';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getAbsoluteUrl } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Edit, Plus, CheckSquare, Square, ChevronDown } from 'lucide-react';
+import { Trash2, Edit, Plus, CheckSquare, Square, ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function MyPage() {
     const [, setLocation] = useLocation();
@@ -23,6 +23,7 @@ export default function MyPage() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('evaluation');
     const [evalFilter, setEvalFilter] = useState<'ALL' | '◎' | '○' | '△'>('ALL');
+    const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
     // Checklist states
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -118,6 +119,22 @@ export default function MyPage() {
 
     const calculateChecklistScore = (horse: any) => {
         return horse.userCheck?.totalScore || 0;
+    };
+
+    const toggleRowExpansion = (horseId: number) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(horseId)) {
+            newExpanded.delete(horseId);
+        } else {
+            newExpanded.add(horseId);
+        }
+        setExpandedRows(newExpanded);
+    };
+
+    const truncatePedigree = (sireName: string, damName: string, maxLength: number = 20) => {
+        const fullText = `${sireName}×${damName}`;
+        if (fullText.length <= maxLength) return fullText;
+        return `${sireName.slice(0, Math.max(5, maxLength - 10))}...×${damName.slice(0, 5)}`;
     };
 
     const handleRestore = async (horseId: number, evaluation: any, memo: string) => {
@@ -338,65 +355,189 @@ export default function MyPage() {
                             {evaluatedHorses.length === 0 ? (
                                 <Card className="p-12 text-center text-gray-500 bg-white/50 border-dashed border-2">評価した馬がまだありません</Card>
                             ) : (
-                                <Card className="overflow-hidden shadow-xl border-none">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead className="bg-gray-50 border-b border-gray-200">
-                                                <tr>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">No.</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">評価</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">性別/毛色</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">血統</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">チェック</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider w-1/3">メモ</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">詳細</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100 bg-white">
-                                                {evaluatedHorses.map((horse: any) => (
-                                                    <tr key={horse.id} className="hover:bg-blue-50/50 transition-colors">
-                                                        <td className="px-6 py-4 font-black text-xl text-gray-900">{horse.lotNumber}</td>
-                                                        <td className="px-6 py-4">
-                                                            <Badge className={`text-sm font-black px-3 py-1 ${horse.userCheck?.evaluation === '◎' ? 'bg-green-100 text-green-700 border-green-200' :
-                                                                horse.userCheck?.evaluation === '○' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                                                    'bg-amber-100 text-amber-700 border-amber-200'
-                                                                }`}>
-                                                                {horse.userCheck?.evaluation}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="px-6 py-4 font-medium text-gray-700">{horse.sex} / {horse.color}</td>
-                                                        <td className="px-6 py-4">
-                                                            <div className="font-bold text-blue-900">{horse.sireName}</div>
-                                                            <div className="text-xs text-gray-500">× {horse.damName}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-bold cursor-help">
-                                                                        {calculateChecklistScore(horse)}点
+                                <>
+                                    {/* デスクトップ用テーブル */}
+                                    <div className="hidden md:block">
+                                        <Card className="overflow-hidden shadow-xl border-none">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                                        <tr>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">No.</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">評価</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">性別/毛色</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">血統</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">チェック</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider w-1/3">メモ</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">詳細</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100 bg-white">
+                                                        {evaluatedHorses.map((horse: any) => (
+                                                            <tr key={horse.id} className="hover:bg-blue-50/50 transition-colors">
+                                                                <td className="px-6 py-4 font-black text-xl text-gray-900">{horse.lotNumber}</td>
+                                                                <td className="px-6 py-4">
+                                                                    <Badge className={`text-sm font-black px-3 py-1 ${horse.userCheck?.evaluation === '◎' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                                        horse.userCheck?.evaluation === '○' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                                            'bg-amber-100 text-amber-700 border-amber-200'
+                                                                        }`}>
+                                                                        {horse.userCheck?.evaluation}
                                                                     </Badge>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p className="text-sm">内訳は馬の詳細ページで確認できます</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <div className="text-sm text-gray-600 italic bg-amber-50/50 p-2 rounded line-clamp-2">
-                                                                {horse.userCheck?.memo || '-'}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <Button size="sm" onClick={() => setLocation(`/horses/${horse.id}`)} className="bg-blue-600 hover:bg-blue-700 rounded-full font-bold">
-                                                                表示
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                                </td>
+                                                                <td className="px-6 py-4 font-medium text-gray-700">{horse.sex} / {horse.color}</td>
+                                                                <td className="px-6 py-4">
+                                                                    <div className="font-bold text-blue-900">{horse.sireName}</div>
+                                                                    <div className="text-xs text-gray-500">× {horse.damName}</div>
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-bold cursor-help">
+                                                                                {calculateChecklistScore(horse)}点
+                                                                            </Badge>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p className="text-sm">内訳は馬の詳細ページで確認できます</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <div className="text-sm text-gray-600 italic bg-amber-50/50 p-2 rounded line-clamp-2">
+                                                                        {horse.userCheck?.memo || '-'}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    <Button size="sm" onClick={() => setLocation(`/horses/${horse.id}`)} className="bg-blue-600 hover:bg-blue-700 rounded-full font-bold">
+                                                                        表示
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </Card>
                                     </div>
-                                </Card>
+
+                                    {/* モバイル用アコーディオン */}
+                                    <div className="md:hidden space-y-3">
+                                        {evaluatedHorses.map((horse: any) => (
+                                            <Card key={horse.id} className="bg-white shadow-md border-0 overflow-hidden">
+                                                {/* 基本情報行 */}
+                                                <div 
+                                                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                                    onClick={() => toggleRowExpansion(horse.id)}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                            {/* 上場番号 */}
+                                                            <div className="flex-shrink-0">
+                                                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                                                                    {horse.lotNumber}
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* 評価バッジ */}
+                                                            <div className="flex-shrink-0">
+                                                                <Badge className={`text-xs font-black px-2 py-1 ${horse.userCheck?.evaluation === '◎' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                                    horse.userCheck?.evaluation === '○' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                                        'bg-amber-100 text-amber-700 border-amber-200'
+                                                                    }`}>
+                                                                    {horse.userCheck?.evaluation}
+                                                                </Badge>
+                                                            </div>
+
+                                                            {/* 性別 */}
+                                                            <div className="flex-shrink-0">
+                                                                <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${horse.sex === '牡' ? 'bg-blue-100 text-blue-800' :
+                                                                    horse.sex === '牝' ? 'bg-pink-100 text-pink-800' :
+                                                                        'bg-green-100 text-green-800'
+                                                                    }`}>
+                                                                    {horse.sex}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* 血統 */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div className="font-bold text-blue-900 text-sm truncate">
+                                                                            {truncatePedigree(horse.sireName, horse.damName)}
+                                                                        </div>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p className="text-sm">{horse.sireName} × {horse.damName}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 展開ボタン */}
+                                                        <div className="flex-shrink-0 ml-2">
+                                                            {expandedRows.has(horse.id) ? (
+                                                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                            ) : (
+                                                                <ChevronRight className="w-5 h-5 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 測尺データ */}
+                                                    <div className="flex gap-4 mt-3 text-xs">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-500">体:</span>
+                                                            <span className="font-bold text-blue-700">{horse.height || '-'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-500">胸:</span>
+                                                            <span className="font-bold text-green-700">{horse.girth || '-'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-500">管:</span>
+                                                            <span className="font-bold text-purple-700">{horse.cannon || '-'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* 詳細情報（展開時） */}
+                                                {expandedRows.has(horse.id) && (
+                                                    <div className="border-t border-gray-100 p-4 bg-gray-50">
+                                                        <div className="space-y-3">
+                                                            {/* チェックスコア */}
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-sm font-bold text-gray-600">チェックスコア</span>
+                                                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-bold">
+                                                                    {calculateChecklistScore(horse)}点
+                                                                </Badge>
+                                                            </div>
+
+                                                            {/* メモ */}
+                                                            {horse.userCheck?.memo && (
+                                                                <div>
+                                                                    <span className="text-sm font-bold text-gray-600 block mb-1">メモ</span>
+                                                                    <div className="text-sm text-gray-700 italic bg-amber-50/50 p-3 rounded border border-amber-100">
+                                                                        "{horse.userCheck.memo}"
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* 操作ボタン */}
+                                                            <div className="flex gap-2 pt-2">
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    onClick={() => setLocation(`/horses/${horse.id}`)} 
+                                                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                                                >
+                                                                    詳細を見る
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </Card>
+                                        ))}
+                                    </div>
+                                </>
                             )}
                         </TabsContent>
 
