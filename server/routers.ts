@@ -28,7 +28,10 @@ import {
   getDb,
   getAllPedigreeUrls,
   getUniqueSires,
-  getAllUsersWithStats
+  getAllUsersWithStats,
+  getTotalUserCount,
+  banUser,
+  unbanUser
 } from "./db";
 import { horses, sales, userChecks, userCheckItems, userCheckResults, pedigreeUrls } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
@@ -505,6 +508,41 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
         return await getAllUsersWithStats(input.offset, input.limit);
+      }),
+
+    // 総ユーザー数取得（オーナー除く）
+    totalUsers: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        return await getTotalUserCount();
+      }),
+
+    // ユーザーBAN
+    banUser: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        const success = await banUser(input.userId);
+        if (!success) {
+          throw new Error("Failed to ban user");
+        }
+        return { success: true };
+      }),
+
+    // ユーザーBAN解除
+    unbanUser: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
+        const success = await unbanUser(input.userId);
+        if (!success) {
+          throw new Error("Failed to unban user");
+        }
+        return { success: true };
       }),
   }),
 });

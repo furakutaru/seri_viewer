@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { trpc } from '@/lib/trpc';
-import { ChevronLeft, ChevronRight, Users, Calendar, MessageSquare, X, Crown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Calendar, MessageSquare, X, Crown, Ban, Shield } from 'lucide-react';
 
 interface UserManagementProps {
   className?: string;
@@ -13,9 +14,23 @@ export function UserManagement({ className }: UserManagementProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 20;
 
-  const { data: users, isLoading, error } = trpc.admin.users.useQuery({
+  const { data: users, isLoading, error, refetch } = trpc.admin.users.useQuery({
     offset: currentPage * pageSize,
     limit: pageSize,
+  });
+
+  const { data: totalUsers } = trpc.admin.totalUsers.useQuery();
+
+  const banUserMutation = trpc.admin.banUser.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
+  const unbanUserMutation = trpc.admin.unbanUser.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
   });
 
   const handlePrevPage = () => {
@@ -61,6 +76,12 @@ export function UserManagement({ className }: UserManagementProps) {
             <p className="text-sm text-slate-600">登録ユーザーの一覧と利用状況</p>
           </div>
         </div>
+        {totalUsers !== undefined && (
+          <div className="text-right">
+            <div className="text-2xl font-bold text-indigo-600">{totalUsers}</div>
+            <div className="text-sm text-slate-600">登録者数（オーナー除く）</div>
+          </div>
+        )}
       </div>
 
       {/* テーブル */}
@@ -86,6 +107,12 @@ export function UserManagement({ className }: UserManagementProps) {
                 </th>
                 <th className="text-center p-4 font-bold text-slate-700 text-sm uppercase tracking-wider">
                   役割
+                </th>
+                <th className="text-center p-4 font-bold text-slate-700 text-sm uppercase tracking-wider">
+                  ステータス
+                </th>
+                <th className="text-center p-4 font-bold text-slate-700 text-sm uppercase tracking-wider">
+                  アクション
                 </th>
               </tr>
             </thead>
@@ -117,6 +144,9 @@ export function UserManagement({ className }: UserManagementProps) {
                     </td>
                     <td className="p-4 text-center">
                       <div className="h-6 bg-slate-200 rounded w-16 mx-auto animate-pulse" />
+                    </td>
+                    <td className="p-4 text-center">
+                      <div className="h-8 bg-slate-200 rounded w-20 mx-auto animate-pulse" />
                     </td>
                   </tr>
                 ))
@@ -180,11 +210,78 @@ export function UserManagement({ className }: UserManagementProps) {
                         )}
                       </Badge>
                     </td>
+                    <td className="p-4 text-center">
+                      {user.banned ? (
+                        <Badge className="bg-red-100 text-red-700 border-red-200 font-bold">
+                          <Ban className="w-3 h-3 mr-1" />
+                          BAN済み
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-green-100 text-green-700 border-green-200 font-bold">
+                          <Shield className="w-3 h-3 mr-1" />
+                          有効
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      {user.role !== 'admin' && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant={user.banned ? "outline" : "destructive"}
+                              size="sm"
+                              className="gap-1"
+                              disabled={banUserMutation.isPending || unbanUserMutation.isPending}
+                            >
+                              {user.banned ? (
+                                <>
+                                  <Shield className="w-4 h-4" />
+                                  BAN解除
+                                </>
+                              ) : (
+                                <>
+                                  <Ban className="w-4 h-4" />
+                                  BAN
+                                </>
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {user.banned ? 'BANを解除しますか？' : 'ユーザーをBANしますか？'}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {user.banned 
+                                  ? `「${user.name || '不明なユーザー'}」のBANを解除します。このユーザーは再度ログインできるようになります。`
+                                  : `「${user.name || '不明なユーザー'}」をBANします。このユーザーはログインできなくなります。この操作は取り消せません。`
+                                }
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => {
+                                  if (user.banned) {
+                                    unbanUserMutation.mutate({ userId: user.id });
+                                  } else {
+                                    banUserMutation.mutate({ userId: user.id });
+                                  }
+                                }}
+                                className={user.banned ? "bg-green-600 hover:bg-green-700" : ""}
+                              >
+                                {user.banned ? 'BANを解除' : 'BANする'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     ユーザーが見つかりません
                   </td>
                 </tr>

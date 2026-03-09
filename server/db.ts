@@ -1,4 +1,4 @@
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { InsertUser, users, horses, userChecks, sales, userCheckItems, userCheckResults, pedigreeUrls } from "../drizzle/schema";
@@ -723,6 +723,7 @@ export async function getAllUsersWithStats(offset: number = 0, limit: number = 2
         name: users.name,
         email: users.email,
         role: users.role,
+        banned: users.banned,
         createdAt: users.createdAt,
         lastSignedIn: users.lastSignedIn,
       })
@@ -758,5 +759,56 @@ export async function getAllUsersWithStats(offset: number = 0, limit: number = 2
   } catch (error) {
     console.error("[Database] Failed to get users with stats:", error);
     return [];
+  }
+}
+
+export async function getTotalUserCount() {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    const result = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(ne(users.role, 'admin'), eq(users.banned, false)));
+    
+    return result[0]?.count || 0;
+  } catch (error) {
+    console.error("[Database] Failed to get total user count:", error);
+    return 0;
+  }
+}
+
+export async function banUser(userId: number) {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(users)
+      .set({ banned: true, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+    
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to ban user:", error);
+    return false;
+  }
+}
+
+export async function unbanUser(userId: number) {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .update(users)
+      .set({ banned: false, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+    
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to unban user:", error);
+    return false;
   }
 }

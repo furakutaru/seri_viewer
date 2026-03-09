@@ -57,6 +57,13 @@
       "when": 1772580638513,
       "tag": "0007_magenta_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773079949661,
+      "tag": "0008_fuzzy_salo",
+      "breakpoints": true
     }
   ]
 }
