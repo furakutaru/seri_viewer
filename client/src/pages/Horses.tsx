@@ -640,6 +640,48 @@ export default function Horses() {
 
             {/* モバイル用アコーディオン */}
             <div className="md:hidden space-y-3">
+              {/* モバイル用ソートコントロール */}
+              <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-600">並び替え</span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={sortBy === 'lotNumber' ? 'default' : 'outline'}
+                      onClick={() => handleSort('lotNumber')}
+                      className={`text-xs px-3 py-1 h-auto font-bold ${sortBy === 'lotNumber' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border-gray-200'}`}
+                    >
+                      番号
+                      {sortBy === 'lotNumber' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={sortBy === 'birthDate' ? 'default' : 'outline'}
+                      onClick={() => handleSort('birthDate')}
+                      className={`text-xs px-3 py-1 h-auto font-bold ${sortBy === 'birthDate' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border-gray-200'}`}
+                    >
+                      年齢
+                      {sortBy === 'birthDate' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={sortBy === 'popularity' ? 'default' : 'outline'}
+                      onClick={() => handleSort('popularity')}
+                      className={`text-xs px-3 py-1 h-auto font-bold ${sortBy === 'popularity' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border-gray-200'}`}
+                    >
+                      人気
+                      {sortBy === 'popularity' && (
+                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               {filteredHorses.map((horse: any) => {
                 const stats = horse.stats;
                 return (
