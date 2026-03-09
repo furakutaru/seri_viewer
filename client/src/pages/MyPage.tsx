@@ -629,52 +629,109 @@ export default function MyPage() {
                             {eliminatedHorses.length === 0 ? (
                                 <Card className="p-12 text-center text-gray-500 bg-white/50 border-dashed border-2">除外した馬はありません</Card>
                             ) : (
-                                <Card className="overflow-hidden shadow-xl border-none">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead className="bg-gray-50 border-b border-gray-200">
-                                                <tr>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">No.</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">性別/毛色</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">血統</th>
-                                                    <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">アクション</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100 bg-white">
-                                                {eliminatedHorses.map((horse: any) => (
-                                                    <tr key={horse.id} className="opacity-60 hover:opacity-100 transition-opacity">
-                                                        <td className="px-6 py-4 font-black text-xl text-gray-400">{horse.lotNumber}</td>
-                                                        <td className="px-6 py-4 font-medium text-gray-500">{horse.sex} / {horse.color}</td>
-                                                        <td className="px-6 py-4">
+                                <>
+                                    {/* デスクトップ用テーブル */}
+                                    <div className="hidden md:block">
+                                        <Card className="overflow-hidden shadow-xl border-none">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                                        <tr>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">No.</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">性別/毛色</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">血統</th>
+                                                            <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">アクション</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-100 bg-white">
+                                                        {eliminatedHorses.map((horse: any) => (
+                                                            <tr key={horse.id} className="opacity-60 hover:opacity-100 transition-opacity">
+                                                                <td className="px-6 py-4 font-black text-xl text-gray-400">{horse.lotNumber}</td>
+                                                                <td className="px-6 py-4 font-medium text-gray-500">{horse.sex} / {horse.color}</td>
+                                                                <td className="px-6 py-4">
+                                                                    <div className="font-bold text-gray-500">{horse.sireName}</div>
+                                                                    <div className="text-xs text-gray-400">× {horse.damName}</div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => setLocation(`/horses/${horse.id}`)}
+                                                                        className="bg-blue-600 hover:bg-blue-700 rounded-full font-bold"
+                                                                    >
+                                                                        表示
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleRestore(horse.id, horse.userCheck?.evaluation, horse.userCheck?.memo || '');
+                                                                        }}
+                                                                        className="text-blue-600 border-blue-200 hover:bg-blue-50 font-bold rounded-full"
+                                                                    >
+                                                                        検討リストに戻す
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </Card>
+                                    </div>
+
+                                    {/* モバイル用カード */}
+                                    <div className="md:hidden space-y-3">
+                                        {eliminatedHorses.map((horse: any) => (
+                                            <Card key={horse.id} className="bg-white shadow-md border-0 p-4 opacity-60 hover:opacity-100 transition-opacity">
+                                                <div className="space-y-3">
+                                                    {/* 上場番号 */}
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">No.</span>
+                                                        <div className="font-black text-xl text-gray-400">{horse.lotNumber}</div>
+                                                    </div>
+
+                                                    {/* 性別/毛色 */}
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">性別/毛色</span>
+                                                        <div className="font-medium text-gray-500 mt-1">{horse.sex} / {horse.color}</div>
+                                                    </div>
+
+                                                    {/* 血統 */}
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">血統</span>
+                                                        <div className="mt-1">
                                                             <div className="font-bold text-gray-500">{horse.sireName}</div>
                                                             <div className="text-xs text-gray-400">× {horse.damName}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => setLocation(`/horses/${horse.id}`)}
-                                                                className="bg-blue-600 hover:bg-blue-700 rounded-full font-bold"
-                                                            >
-                                                                表示
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleRestore(horse.id, horse.userCheck?.evaluation, horse.userCheck?.memo || '');
-                                                                }}
-                                                                className="text-blue-600 border-blue-200 hover:bg-blue-50 font-bold rounded-full"
-                                                            >
-                                                                検討リストに戻す
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 操作ボタン */}
+                                                    <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => setLocation(`/horses/${horse.id}`)}
+                                                            className="flex-1 bg-blue-600 hover:bg-blue-700 rounded-full font-bold"
+                                                        >
+                                                            表示
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRestore(horse.id, horse.userCheck?.evaluation, horse.userCheck?.memo || '');
+                                                            }}
+                                                            className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50 font-bold rounded-full"
+                                                        >
+                                                            検討リストに戻す
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        ))}
                                     </div>
-                                </Card>
+                                </>
                             )}
                         </TabsContent>
 
