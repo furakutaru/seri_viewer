@@ -711,11 +711,14 @@ export async function getAllPedigreeUrls() {
   }
 }
 
-export async function getAllUsersWithStats(offset: number = 0, limit: number = 20) {
+export async function getAllUsersWithStats(offset: number = 0, limit: number = 20, includeBanned: boolean = false) {
   const db = await getDb();
   if (!db) return [];
 
   try {
+    // Build the where condition
+    const whereCondition = includeBanned ? undefined : eq(users.banned, false);
+
     // First get all users with pagination
     const usersList = await db
       .select({
@@ -728,6 +731,7 @@ export async function getAllUsersWithStats(offset: number = 0, limit: number = 2
         lastSignedIn: users.lastSignedIn,
       })
       .from(users)
+      .where(whereCondition)
       .orderBy(desc(users.lastSignedIn))
       .limit(limit)
       .offset(offset);

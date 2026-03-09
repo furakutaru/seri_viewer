@@ -504,10 +504,11 @@ export const appRouter = router({
       .input(z.object({
         offset: z.number().optional().default(0),
         limit: z.number().optional().default(20),
+        includeBanned: z.boolean().optional().default(false),
       }))
       .query(async ({ input, ctx }) => {
         if (ctx.user.role !== 'admin') throw new Error("Unauthorized");
-        return await getAllUsersWithStats(input.offset, input.limit);
+        return await getAllUsersWithStats(input.offset, input.limit, input.includeBanned);
       }),
 
     // 総ユーザー数取得（オーナー除く）

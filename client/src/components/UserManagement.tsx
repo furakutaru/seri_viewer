@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
 import { trpc } from '@/lib/trpc';
-import { ChevronLeft, ChevronRight, Users, Calendar, MessageSquare, X, Crown, Ban, Shield } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Calendar, MessageSquare, X, Crown, Ban, Shield, Eye, EyeOff } from 'lucide-react';
 
 interface UserManagementProps {
   className?: string;
@@ -12,11 +13,13 @@ interface UserManagementProps {
 
 export function UserManagement({ className }: UserManagementProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [includeBanned, setIncludeBanned] = useState(false);
   const pageSize = 20;
 
   const { data: users, isLoading, error, refetch } = trpc.admin.users.useQuery({
     offset: currentPage * pageSize,
     limit: pageSize,
+    includeBanned,
   });
 
   const { data: totalUsers } = trpc.admin.totalUsers.useQuery();
@@ -43,6 +46,11 @@ export function UserManagement({ className }: UserManagementProps) {
     if (users && users.length === pageSize) {
       setCurrentPage(currentPage + 1);
     }
+  };
+
+  const handleToggleIncludeBanned = (checked: boolean) => {
+    setIncludeBanned(checked);
+    setCurrentPage(0); // Reset to first page when filter changes
   };
 
   const formatDate = (date: Date) => {
@@ -76,12 +84,33 @@ export function UserManagement({ className }: UserManagementProps) {
             <p className="text-sm text-slate-600">登録ユーザーの一覧と利用状況</p>
           </div>
         </div>
-        {totalUsers !== undefined && (
-          <div className="text-right">
-            <div className="text-2xl font-bold text-indigo-600">{totalUsers}</div>
-            <div className="text-sm text-slate-600">登録者数（オーナー除く）</div>
+        <div className="flex items-center gap-6">
+          {/* フィルタートグル */}
+          <div className="flex items-center gap-3">
+            <Switch
+              id="include-banned"
+              checked={includeBanned}
+              onCheckedChange={handleToggleIncludeBanned}
+            />
+            <label htmlFor="include-banned" className="flex items-center gap-2 cursor-pointer">
+              {includeBanned ? (
+                <Eye className="w-4 h-4 text-slate-600" />
+              ) : (
+                <EyeOff className="w-4 h-4 text-slate-400" />
+              )}
+              <span className="text-sm text-slate-600">
+                {includeBanned ? 'BAN済みを含める' : 'BAN済みを非表示'}
+              </span>
+            </label>
           </div>
-        )}
+          {/* 総ユーザー数 */}
+          {totalUsers !== undefined && (
+            <div className="text-right">
+              <div className="text-2xl font-bold text-indigo-600">{totalUsers}</div>
+              <div className="text-sm text-slate-600">登録者数（オーナー除く）</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* テーブル */}
