@@ -756,36 +756,128 @@ export default function MyPage() {
                                         チェックリスト項目がありません
                                     </Card>
                                 ) : (
-                                    <Card className="overflow-hidden shadow-xl border-none">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-gray-50 border-b border-gray-200">
-                                                    <tr>
-                                                        <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">項目名</th>
-                                                        <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">タイプ</th>
-                                                        <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">スコア</th>
-                                                        <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">作成日</th>
-                                                        <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">アクション</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100 bg-white">
-                                                    {checklistItems.map((item: any) => (
-                                                        <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
-                                                            <td className="px-6 py-4">
-                                                                {editingItem?.id === item.id ? (
-                                                                    <Input
-                                                                        value={editingItem.itemName}
-                                                                        onChange={(e) => setEditingItem({ ...editingItem, itemName: e.target.value })}
-                                                                        className="w-full"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="font-medium text-gray-900">{item.itemName}</div>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-6 py-4">
+                                    <>
+                                        {/* デスクトップ用テーブル */}
+                                        <div className="hidden md:block">
+                                            <Card className="overflow-hidden shadow-xl border-none">
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left">
+                                                        <thead className="bg-gray-50 border-b border-gray-200">
+                                                            <tr>
+                                                                <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">項目名</th>
+                                                                <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">タイプ</th>
+                                                                <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">スコア</th>
+                                                                <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider">作成日</th>
+                                                                <th className="px-6 py-4 font-bold text-gray-600 uppercase text-xs tracking-wider text-right">アクション</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100 bg-white">
+                                                            {checklistItems.map((item: any) => (
+                                                                <tr key={item.id} className="hover:bg-blue-50/50 transition-colors">
+                                                                    <td className="px-6 py-4">
+                                                                        {editingItem?.id === item.id ? (
+                                                                            <Input
+                                                                                value={editingItem.itemName}
+                                                                                onChange={(e) => setEditingItem({ ...editingItem, itemName: e.target.value })}
+                                                                                className="w-full"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="font-medium text-gray-900">{item.itemName}</div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-6 py-4">
+                                                                        {editingItem?.id === item.id ? (
+                                                                            <Select value={editingItem.itemType} onValueChange={(value: 'boolean' | 'numeric') => setEditingItem({ ...editingItem, itemType: value })}>
+                                                                                <SelectTrigger className="w-32">
+                                                                                    <SelectValue />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    <SelectItem value="boolean">チェック</SelectItem>
+                                                                                    <SelectItem value="numeric">数値</SelectItem>
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        ) : (
+                                                                            <Badge variant={item.itemType === 'boolean' ? 'default' : 'secondary'}>
+                                                                                {item.itemType === 'boolean' ? 'チェックボックス' : '数値評価'}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-6 py-4">
+                                                                        {editingItem?.id === item.id ? (
+                                                                            <Input
+                                                                                type="number"
+                                                                                min="0"
+                                                                                max="100"
+                                                                                value={editingItem.score}
+                                                                                onChange={(e) => setEditingItem({ ...editingItem, score: parseInt(e.target.value) || 0 })}
+                                                                                className="w-20"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="font-bold text-blue-600">{item.score}点</div>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-6 py-4">
+                                                                        <div className="text-sm text-gray-500">
+                                                                            {new Date(item.createdAt).toLocaleDateString('ja-JP')}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 text-right">
+                                                                        <div className="flex gap-2 justify-end">
+                                                                            {editingItem?.id === item.id ? (
+                                                                                <>
+                                                                                    <Button size="sm" onClick={handleUpdateItem} className="bg-green-600 hover:bg-green-700">
+                                                                                        保存
+                                                                                    </Button>
+                                                                                    <Button size="sm" variant="outline" onClick={cancelEdit}>
+                                                                                        キャンセル
+                                                                                    </Button>
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
+                                                                                        <Edit className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                    <Button size="sm" variant="outline" onClick={() => handleDeleteItem(item.id)} className="text-red-600 hover:text-red-700">
+                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                    </Button>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </Card>
+                                        </div>
+
+                                        {/* モバイル用カード */}
+                                        <div className="md:hidden space-y-3">
+                                            {checklistItems.map((item: any) => (
+                                                <Card key={item.id} className="bg-white shadow-md border-0 p-4">
+                                                    <div className="space-y-3">
+                                                        {/* 項目名 */}
+                                                        <div>
+                                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">項目名</span>
+                                                            {editingItem?.id === item.id ? (
+                                                                <Input
+                                                                    value={editingItem.itemName}
+                                                                    onChange={(e) => setEditingItem({ ...editingItem, itemName: e.target.value })}
+                                                                    className="w-full mt-1"
+                                                                />
+                                                            ) : (
+                                                                <div className="font-medium text-gray-900 mt-1">{item.itemName}</div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* タイプとスコア */}
+                                                        <div className="flex gap-4">
+                                                            <div className="flex-1">
+                                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">タイプ</span>
                                                                 {editingItem?.id === item.id ? (
                                                                     <Select value={editingItem.itemType} onValueChange={(value: 'boolean' | 'numeric') => setEditingItem({ ...editingItem, itemType: value })}>
-                                                                        <SelectTrigger className="w-32">
+                                                                        <SelectTrigger className="w-full mt-1">
                                                                             <SelectValue />
                                                                         </SelectTrigger>
                                                                         <SelectContent>
@@ -794,12 +886,15 @@ export default function MyPage() {
                                                                         </SelectContent>
                                                                     </Select>
                                                                 ) : (
-                                                                    <Badge variant={item.itemType === 'boolean' ? 'default' : 'secondary'}>
-                                                                        {item.itemType === 'boolean' ? 'チェックボックス' : '数値評価'}
-                                                                    </Badge>
+                                                                    <div className="mt-1">
+                                                                        <Badge variant={item.itemType === 'boolean' ? 'default' : 'secondary'}>
+                                                                            {item.itemType === 'boolean' ? 'チェックボックス' : '数値評価'}
+                                                                        </Badge>
+                                                                    </div>
                                                                 )}
-                                                            </td>
-                                                            <td className="px-6 py-4">
+                                                            </div>
+                                                            <div className="w-24">
+                                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">スコア</span>
                                                                 {editingItem?.id === item.id ? (
                                                                     <Input
                                                                         type="number"
@@ -807,46 +902,51 @@ export default function MyPage() {
                                                                         max="100"
                                                                         value={editingItem.score}
                                                                         onChange={(e) => setEditingItem({ ...editingItem, score: parseInt(e.target.value) || 0 })}
-                                                                        className="w-20"
+                                                                        className="w-full mt-1"
                                                                     />
                                                                 ) : (
-                                                                    <div className="font-bold text-blue-600">{item.score}点</div>
+                                                                    <div className="font-bold text-blue-600 mt-1">{item.score}点</div>
                                                                 )}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <div className="text-sm text-gray-500">
-                                                                    {new Date(item.createdAt).toLocaleDateString('ja-JP')}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right">
-                                                                <div className="flex gap-2 justify-end">
-                                                                    {editingItem?.id === item.id ? (
-                                                                        <>
-                                                                            <Button size="sm" onClick={handleUpdateItem} className="bg-green-600 hover:bg-green-700">
-                                                                                保存
-                                                                            </Button>
-                                                                            <Button size="sm" variant="outline" onClick={cancelEdit}>
-                                                                                キャンセル
-                                                                            </Button>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
-                                                                                <Edit className="w-4 h-4" />
-                                                                            </Button>
-                                                                            <Button size="sm" variant="outline" onClick={() => handleDeleteItem(item.id)} className="text-red-600 hover:text-red-700">
-                                                                                <Trash2 className="w-4 h-4" />
-                                                                            </Button>
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 作成日 */}
+                                                        <div>
+                                                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">作成日</span>
+                                                            <div className="text-sm text-gray-500 mt-1">
+                                                                {new Date(item.createdAt).toLocaleDateString('ja-JP')}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 操作ボタン */}
+                                                        <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                                            {editingItem?.id === item.id ? (
+                                                                <>
+                                                                    <Button size="sm" onClick={handleUpdateItem} className="flex-1 bg-green-600 hover:bg-green-700">
+                                                                        保存
+                                                                    </Button>
+                                                                    <Button size="sm" variant="outline" onClick={cancelEdit} className="flex-1">
+                                                                        キャンセル
+                                                                    </Button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Button size="sm" variant="outline" onClick={() => startEdit(item)} className="flex-1">
+                                                                        <Edit className="w-4 h-4 mr-1" />
+                                                                        編集
+                                                                    </Button>
+                                                                    <Button size="sm" variant="outline" onClick={() => handleDeleteItem(item.id)} className="flex-1 text-red-600 hover:text-red-700">
+                                                                        <Trash2 className="w-4 h-4 mr-1" />
+                                                                        削除
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            ))}
                                         </div>
-                                    </Card>
+                                    </>
                                 )}
                             </div>
                         </TabsContent>
