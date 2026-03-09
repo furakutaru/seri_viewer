@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -644,41 +645,60 @@ export default function Horses() {
               <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-gray-600">並び替え</span>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={sortBy === 'lotNumber' ? 'default' : 'outline'}
-                      onClick={() => handleSort('lotNumber')}
-                      className={`text-xs px-3 py-1 h-auto font-bold ${sortBy === 'lotNumber' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border-gray-200'}`}
-                    >
-                      番号
-                      {sortBy === 'lotNumber' && (
-                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={sortBy === 'birthDate' ? 'default' : 'outline'}
-                      onClick={() => handleSort('birthDate')}
-                      className={`text-xs px-3 py-1 h-auto font-bold ${sortBy === 'birthDate' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border-gray-200'}`}
-                    >
-                      年齢
-                      {sortBy === 'birthDate' && (
-                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={sortBy === 'popularity' ? 'default' : 'outline'}
-                      onClick={() => handleSort('popularity')}
-                      className={`text-xs px-3 py-1 h-auto font-bold ${sortBy === 'popularity' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border-gray-200'}`}
-                    >
-                      人気
-                      {sortBy === 'popularity' && (
-                        <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                      )}
-                    </Button>
-                  </div>
+                  <Select 
+                    value={`${sortBy}-${sortOrder}`} 
+                    onValueChange={(value: string) => {
+                      const [field, order] = value.split('-') as [typeof sortBy, typeof sortOrder];
+                      if (sortBy === field) {
+                        setSortOrder(order === 'asc' ? 'desc' : 'asc');
+                      } else {
+                        setSortBy(field);
+                        setSortOrder('asc');
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-32 bg-white border-gray-200 text-xs font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="lotNumber-asc" className="text-xs font-bold">
+                        上場番号 ↑
+                      </SelectItem>
+                      <SelectItem value="lotNumber-desc" className="text-xs font-bold">
+                        上場番号 ↓
+                      </SelectItem>
+                      <SelectItem value="birthDate-asc" className="text-xs font-bold">
+                        生年月日 ↑
+                      </SelectItem>
+                      <SelectItem value="birthDate-desc" className="text-xs font-bold">
+                        生年月日 ↓
+                      </SelectItem>
+                      <SelectItem value="height-asc" className="text-xs font-bold">
+                        体高 ↑
+                      </SelectItem>
+                      <SelectItem value="height-desc" className="text-xs font-bold">
+                        体高 ↓
+                      </SelectItem>
+                      <SelectItem value="girth-asc" className="text-xs font-bold">
+                        胸囲 ↑
+                      </SelectItem>
+                      <SelectItem value="girth-desc" className="text-xs font-bold">
+                        胸囲 ↓
+                      </SelectItem>
+                      <SelectItem value="cannon-asc" className="text-xs font-bold">
+                        管囲 ↑
+                      </SelectItem>
+                      <SelectItem value="cannon-desc" className="text-xs font-bold">
+                        管囲 ↓
+                      </SelectItem>
+                      <SelectItem value="popularity-asc" className="text-xs font-bold">
+                        人気度 ↑
+                      </SelectItem>
+                      <SelectItem value="popularity-desc" className="text-xs font-bold">
+                        人気度 ↓
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
