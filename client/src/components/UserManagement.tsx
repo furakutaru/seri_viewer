@@ -107,7 +107,7 @@ export function UserManagement({ className }: UserManagementProps) {
           {totalUsers !== undefined && (
             <div className="text-right">
               <div className="text-2xl font-bold text-indigo-600">{totalUsers}</div>
-              <div className="text-sm text-slate-600">登録者数（オーナー除く）</div>
+              <div className="text-sm text-slate-600">有効ユーザー数（オーナー・BAN済み除く）</div>
             </div>
           )}
         </div>
