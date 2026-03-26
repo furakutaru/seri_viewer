@@ -60,10 +60,11 @@ export class JbisImportService {
         ...result
       });
 
-      // レート制限対策（各URL間に2秒待機）
+      // レート制限対策（各URL間に2〜5秒のランダムな待機）
       if (saleUrls.indexOf(url) < saleUrls.length - 1) {
-        console.log('[JbisImport] Waiting 2 seconds before next URL...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const delay = Math.floor(Math.random() * 3000) + 2000;
+        console.log(`[JbisImport] Waiting ${delay}ms before next URL...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
